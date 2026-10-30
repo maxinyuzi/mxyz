@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>马昕玉子的《高级网页设计》课堂实践</title>
+  <style>
+    :root{
+      --bg:#0f1724;--card:#0b1220;--accent:#7dd3fc;--muted:#94a3b8;--glass:rgba(255,255,255,0.04);
+      --radius:12px;--maxw:1100px;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;color:#e6eef8;background:linear-gradient(180deg,#071029 0%, #071a2a 60%);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:40px}
+    .wrap{width:100%;max-width:var(--maxw)}
+    header{display:flex;align-items:center;gap:18px;margin-bottom:20px}
+    .logo{width:72px;height:72px;background:linear-gradient(135deg,var(--accent),#60a5fa);border-radius:14px;display:grid;place-items:center;color:#022;box-shadow:0 6px 18px rgba(2,6,23,.6)}
+    h1{font-size:20px;margin:0}
+    p.lead{margin:6px 0 0;color:var(--muted)}
+    .grid{display:flex;gap:18px}
+    nav,main{background:var(--card);padding:18px;border-radius:var(--radius);flex:1;box-shadow:0 6px 18px rgba(2,6,23,.6)}
+    nav{max-width:320px}
+    nav h2{margin:0 0 8px;font-size:14px}
+    .links{display:flex;flex-direction:column;gap:8px}
+    .links a{display:flex;align-items:center;gap:10px;padding:10px;border-radius:10px;color:var(--accent);text-decoration:none;background:linear-gradient(180deg,transparent,rgba(255,255,255,.01));border:1px solid rgba(125,211,252,.06)}
+    .links a .ico{width:32px;height:32px;display:inline-grid;place-items:center;border-radius:8px;background:var(--glass);color:var(--accent)}
+    main h3{margin-top:0}
+    .card{background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent);padding:12px;border-radius:10px;margin-bottom:12px;color:var(--muted)}
+    footer{margin-top:14px;color:var(--muted);font-size:13px;text-align:center}
+    pre.prompt{white-space:pre-wrap;background:rgba(255,255,255,0.02);padding:12px;border-radius:8px;color:#dbeafe;overflow:auto}
+    /* Responsive */
+    @media (max-width:880px){.grid{flex-direction:column}nav{max-width:none}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="logo" aria-hidden>
+        <svg width="38" height="38" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="2" width="20" height="20" rx="5" fill="#001826"/><path d="M6 12h12M12 6v12" stroke="#7dd3fc" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div>
+        <h1>马昕玉子的《高级网页设计》课堂实践</h1>
+        <p class="lead">课堂目录：flex复习 · 字体图标 · 其余模块后续在增加</p>
+      </div>
+    </header>
+
+    <div class="grid">
+      <nav>
+        <h2>本目录下的网页</h2>
+        <div class="links">
+          <!-- 静态生成的目录链接 -->
+          <a href="1.html"><span class="ico">1</span><span>1.html</span></a>
+        </div>
+
+        <h2 style="margin-top:16px">课堂目录</h2>
+        <div class="links">
+          <a href="#flex"><span class="ico">F</span><span>Flex 复习</span></a>
+          <a href="#icons"><span class="ico">★</span><span>字体图标（示例）</span></a>
+          <a href="#more"><span class="ico">…</span><span>其余模块（后续增加）</span></a>
+        </div>
+      </nav>
+
+      <main>
+        <section id="flex" class="card">
+          <h3>Flex 复习</h3>
+          <p>下面是几个简单的 Flex 示例（原生 CSS，无 CDN）：</p>
+          <div style="display:flex;gap:10px;margin-top:10px">
+            <div style="flex:1;padding:12px;background:linear-gradient(180deg,rgba(125,211,252,0.06),transparent);border-radius:8px">flex:1</div>
+            <div style="flex:2;padding:12px;background:linear-gradient(180deg,rgba(96,165,250,0.06),transparent);border-radius:8px">flex:2</div>
+            <div style="flex:1;padding:12px;background:linear-gradient(180deg,rgba(125,211,252,0.04),transparent);border-radius:8px">flex:1</div>
+          </div>
+        </section>
+
+        <section id="icons" class="card">
+          <h3>字体图标 示例（SVG 内联替代字体图标）</h3>
+          <p>为了不使用外部 CDN，我们使用内联 SVG 做图标示例：</p>
+          <div style="display:flex;gap:10px;margin-top:10px">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none"><path d="M12 2l2.9 6.3L21 9l-5 3.8L17 21 12 17.8 7 21l1-8.2L3 9l6.1-.7L12 2z" fill="#7dd3fc"/></svg>
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#60a5fa" stroke-width="1.4" fill="rgba(96,165,250,0.05)"/></svg>
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none"><rect x="4" y="4" width="16" height="16" rx="3" fill="#7dd3fc"/></svg>
+          </div>
+        </section>
+
+        <section id="more" class="card">
+          <h3>其余模块（后续在增加）</h3>
+          <p>占位：CSS 动画、响应式进阶、可访问性、组件库集成等。</p>
+        </section>
+
+        <section class="card">
+          <h3>页面包含的提示词（请求原文）</h3>
+          <pre class="prompt">创建一个新页面，包括本目录下的所有网页的超链接，使用原生代码，不使用cdn，新页面名称为index.html，主题为马昕玉子的《高级网页设计》课堂实践，美化页面，课堂目录中包含flex复习、字体图标、其余模块后续在增加。页面中包括本提示词。</pre>
+        </section>
+
+        <footer>
+        </footer>
+      </main>
+    </div>
+  </div>
+</body>
+</html>
