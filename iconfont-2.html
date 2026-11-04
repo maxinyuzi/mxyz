@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>二号馆 · Lucide 线条馆 — 字形画廊</title>
+<style>
+    :root{
+        --mxyz_paper:#EFF1F4;
+        --mxyz_ink:#16181D;
+        --mxyz_ultra:#2A3BA0;
+        --mxyz_seal:#B33A2B;
+        --mxyz_mist:#7B8296;
+        --mxyz_display:"Bodoni MT","Didot","STKaiti","KaiTi","Kaiti SC",serif;
+        --mxyz_body:"Segoe UI","Microsoft YaHei",sans-serif;
+        --mxyz_mono:"Consolas","Courier New",monospace;
+    }
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{background:var(--mxyz_paper);color:var(--mxyz_ink);font-family:var(--mxyz_body);line-height:1.7}
+    a{color:inherit}
+    a:focus-visible{outline:2px solid var(--mxyz_seal);outline-offset:3px}
+
+    /* ── 顶栏 ── */
+    .mxyz_topbar{display:flex;align-items:center;gap:14px;max-width:1180px;margin:0 auto;padding:22px 28px}
+    .mxyz_mark{width:40px;height:40px;background:var(--mxyz_seal);color:#fff;display:grid;place-items:center;
+        font-family:var(--mxyz_display);font-size:20px;border-radius:6px;transform:rotate(-4deg);flex:none}
+    .mxyz_brand{line-height:1.3}
+    .mxyz_brand strong{font-family:var(--mxyz_display);font-weight:700;font-size:19px;letter-spacing:.12em;display:block}
+    .mxyz_brand span{font-size:12px;color:var(--mxyz_mist)}
+    .mxyz_back{margin-left:auto;font-size:14px;text-decoration:none;border:1px solid var(--mxyz_ink);
+        padding:8px 18px;border-radius:999px;transition:background .2s,color .2s}
+    .mxyz_back:hover{background:var(--mxyz_ink);color:#fff}
+
+    /* ── 主视觉 ── */
+    .mxyz_hero{max-width:1180px;margin:0 auto;padding:34px 28px 10px;display:flex;gap:48px;align-items:stretch}
+    .mxyz_hero_text{display:flex;align-items:flex-start;gap:26px}
+    .mxyz_vertical{writing-mode:vertical-rl;font-family:var(--mxyz_display);font-weight:700;
+        font-size:clamp(3rem,7vw,4.8rem);letter-spacing:.3em;line-height:1}
+    .mxyz_hero_sub{writing-mode:vertical-rl;color:var(--mxyz_mist);font-size:14px;letter-spacing:.28em;padding-top:8px}
+    .mxyz_stage_wrap{flex:1;position:relative}
+    .mxyz_stage{background:var(--mxyz_ink);border-radius:8px;min-height:340px;display:grid;place-items:center;color:#fff}
+    .mxyz_stage svg{width:150px;height:150px;stroke-width:1.1;animation:mxyz_enter .9s cubic-bezier(.2,.7,.3,1) both}
+    .mxyz_seal_stamp{position:absolute;top:-16px;right:22px;width:60px;height:60px;background:var(--mxyz_seal);color:#fff;
+        display:grid;place-items:center;font-family:var(--mxyz_display);font-size:20px;letter-spacing:.08em;
+        writing-mode:vertical-rl;border-radius:6px;transform:rotate(-4deg);
+        box-shadow:0 4px 14px rgba(179,58,43,.35);animation:mxyz_stamp .5s .55s cubic-bezier(.2,.9,.3,1.4) both}
+    .mxyz_caption{display:flex;align-items:baseline;gap:14px;margin-top:14px;border-bottom:1px solid rgba(22,24,29,.14);padding-bottom:12px}
+    .mxyz_caption_no{font-family:var(--mxyz_display);font-size:22px;color:var(--mxyz_ultra)}
+    .mxyz_caption_name{font-size:15px}
+    .mxyz_caption_tech{margin-left:auto;font-family:var(--mxyz_mono);font-size:12px;color:var(--mxyz_mist)}
+    @keyframes mxyz_enter{from{opacity:0;transform:translateY(26px) scale(.94)}to{opacity:1;transform:none}}
+    @keyframes mxyz_stamp{from{opacity:0;transform:rotate(-4deg) scale(1.7)}to{opacity:1;transform:rotate(-4deg) scale(1)}}
+
+    /* ── 展区 ── */
+    .mxyz_section{max-width:1180px;margin:0 auto;padding:52px 28px 0}
+    .mxyz_section_head{display:flex;align-items:baseline;gap:16px;margin-bottom:24px}
+    .mxyz_section_head h2{font-family:var(--mxyz_display);font-size:26px;letter-spacing:.14em;font-weight:700}
+    .mxyz_section_head p{color:var(--mxyz_mist);font-size:14px}
+
+    .mxyz_grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:16px}
+    .mxyz_piece{background:#fff;border:1px solid rgba(22,24,29,.1);border-radius:4px;overflow:hidden;transition:border-color .2s}
+    .mxyz_piece:hover{border-color:var(--mxyz_ultra)}
+    .mxyz_piece_icon{height:110px;display:grid;place-items:center;color:var(--mxyz_ink)}
+    .mxyz_piece_icon svg{width:40px;height:40px;stroke-width:1.6}
+    .mxyz_piece_label{border-top:1px solid rgba(22,24,29,.1);padding:9px 12px;display:flex;align-items:baseline;gap:8px}
+    .mxyz_piece_label b{font-size:13px;font-weight:600}
+    .mxyz_piece_label span{margin-left:auto;font-family:var(--mxyz_mono);font-size:11px;color:var(--mxyz_mist)}
+
+    /* ── 笔锋三档 ── */
+    .mxyz_strokes{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
+    .mxyz_stroke_row{background:#fff;border:1px solid rgba(22,24,29,.1);border-radius:4px;padding:28px 20px 0;
+        display:flex;justify-content:center;gap:34px;color:var(--mxyz_ink);flex-wrap:wrap}
+    .mxyz_stroke_row svg{width:34px;height:34px}
+    .mxyz_stroke_note{grid-column:1/-1;border-top:1px solid rgba(22,24,29,.12);margin-top:20px;padding:8px 4px 12px;
+        font-size:12px;color:var(--mxyz_mist);font-family:var(--mxyz_display);letter-spacing:.2em;text-align:center}
+
+    /* ── 施彩 ── */
+    .mxyz_trio{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px}
+    .mxyz_trio .mxyz_piece_icon svg{width:44px;height:44px;stroke-width:1.6}
+    .mxyz_c_ultra{color:var(--mxyz_ultra)}
+    .mxyz_c_ink{color:var(--mxyz_ink)}
+    .mxyz_c_seal{color:var(--mxyz_seal)}
+
+    /* ── 用法 ── */
+    .mxyz_code{background:var(--mxyz_ink);color:#E7EAF3;border-radius:6px;padding:20px 24px;
+        font-family:var(--mxyz_mono);font-size:13px;line-height:1.9;overflow-x:auto;white-space:pre}
+    .mxyz_code em{color:#8FA3F5;font-style:normal}
+
+    .mxyz_footer{max-width:1180px;margin:0 auto;padding:56px 28px 40px;color:var(--mxyz_mist);font-size:13px;
+        display:flex;gap:16px;flex-wrap:wrap;align-items:center}
+    .mxyz_footer a{color:var(--mxyz_ultra);text-decoration:none;border-bottom:1px solid rgba(42,59,160,.35)}
+
+    @media (max-width:760px){
+        .mxyz_hero{flex-direction:column;gap:28px}
+        .mxyz_vertical,.mxyz_hero_sub{writing-mode:horizontal-tb;letter-spacing:.18em}
+        .mxyz_stage{min-height:240px}
+        .mxyz_stage svg{width:100px;height:100px}
+    }
+    @media (prefers-reduced-motion:reduce){
+        .mxyz_stage svg,.mxyz_seal_stamp{animation:none}
+    }
+</style>
+</head>
+<body>
+
+<header class="mxyz_topbar">
+    <div class="mxyz_mark" aria-hidden="true">字</div>
+    <div class="mxyz_brand">
+        <strong>字形画廊</strong>
+        <span>二号馆 · Lucide 线条馆（SVG 方式）</span>
+    </div>
+    <a class="mxyz_back" href="index.html">返回首页</a>
+</header>
+
+<section class="mxyz_hero">
+    <div class="mxyz_hero_text">
+        <h1 class="mxyz_vertical">以线为骨</h1>
+        <p class="mxyz_hero_sub">线条馆 · 一线一乾坤</p>
+    </div>
+    <div class="mxyz_stage_wrap">
+        <div class="mxyz_stage">
+            <i data-lucide="pen-tool" aria-label="钢笔"></i>
+        </div>
+        <div class="mxyz_seal_stamp" aria-hidden="true">玉子</div>
+        <div class="mxyz_caption">
+            <span class="mxyz_caption_no">藏品 01</span>
+            <span class="mxyz_caption_name">钢笔 · 本馆镇馆之作</span>
+            <span class="mxyz_caption_tech">data-lucide="pen-tool"</span>
+        </div>
+    </div>
+</section>
+
+<section class="mxyz_section">
+    <div class="mxyz_section_head">
+        <h2>馆藏十二件</h2>
+        <p>皆为内联 SVG：绘于画布之上的矢量线条，而非字体字符。</p>
+    </div>
+    <div class="mxyz_grid">
+        <figure class="mxyz_piece"><div class="mxyz_piece_icon"><i data-lucide="palette"></i></div><figcaption class="mxyz_piece_label"><b>调色盘</b><span>palette</span></figcaption></figure>
+        <figure class="mxyz_piece"><div class="mxyz_piece_icon"><i data-lucide="brush"></i></div><figcaption class="mxyz_piece_label"><b>画笔</b><span>brush</span></figcaption></figure>
+        <figure class="mxyz_piece"><div class="mxyz_piece_icon"><i data-lucide="pen-tool"></i></div><figcaption class="mxyz_piece_label"><b>钢笔</b><span>pen-tool</span></figcaption></figure>
+        <figure class="mxyz_piece"><div class="mxyz_piece_icon"><i data-lucide="scissors"></i></div><figcaption class="mxyz_piece_label"><b>剪刀</b><span>scissors</span></figcaption></figure>
+        <figure class="mxyz_piece"><div class="mxyz_piece_icon"><i data-lucide="stamp"></i></div><figcaption class="mxyz_piece_label"><b>印章</b><span>stamp</span></figcaption></figure>
+        <figure class="mxyz_piece"><div class="mxyz_piece_icon"><i data-lucide="swatch-book"></i></div><figcaption class="mxyz_piece_label"><b>色卡</b><span>swatch-book</span></figcaption></figure>
+        <figure class="mxyz_piece"><div class="mxyz_piece_icon"><i data-lucide="frame"></i></div><figcaption class="mxyz_piece_label"><b>画框</b><span>frame</span></figcaption></figure>
+        <figure class="mxyz_piece"><div class="mxyz_piece_icon"><i data-lucide="image"></i></div><figcaption class="mxyz_piece_label"><b>风景</b><span>image</span></figcaption></figure>
+        <figure class="mxyz_piece"><div class="mxyz_piece_icon"><i data-lucide="aperture"></i></div><figcaption class="mxyz_piece_label"><b>光圈</b><span>aperture</span></figcaption></figure>
+        <figure class="mxyz_piece"><div class="mxyz_piece_icon"><i data-lucide="feather"></i></div><figcaption class="mxyz_piece_label"><b>羽毛</b><span>feather</span></figcaption></figure>
+        <figure class="mxyz_piece"><div class="mxyz_piece_icon"><i data-lucide="gem"></i></div><figcaption class="mxyz_piece_label"><b>宝石</b><span>gem</span></figcaption></figure>
+        <figure class="mxyz_piece"><div class="mxyz_piece_icon"><i data-lucide="compass"></i></div><figcaption class="mxyz_piece_label"><b>圆规</b><span>compass</span></figcaption></figure>
+    </div>
+</section>
+
+<section class="mxyz_section">
+    <div class="mxyz_section_head">
+        <h2>笔锋三档</h2>
+        <p>SVG 的妙处：stroke-width 可调，同一线稿，粗细由人。</p>
+    </div>
+    <div class="mxyz_strokes">
+        <div class="mxyz_stroke_row" data-mxyz-stroke="1">
+            <i data-lucide="feather"></i><i data-lucide="pen-tool"></i><i data-lucide="brush"></i>
+            <div class="mxyz_stroke_note">细笔 · stroke-width 1</div>
+        </div>
+        <div class="mxyz_stroke_row" data-mxyz-stroke="2">
+            <i data-lucide="feather"></i><i data-lucide="pen-tool"></i><i data-lucide="brush"></i>
+            <div class="mxyz_stroke_note">中笔 · stroke-width 2</div>
+        </div>
+        <div class="mxyz_stroke_row" data-mxyz-stroke="3">
+            <i data-lucide="feather"></i><i data-lucide="pen-tool"></i><i data-lucide="brush"></i>
+            <div class="mxyz_stroke_note">粗笔 · stroke-width 3</div>
+        </div>
+    </div>
+</section>
+
+<section class="mxyz_section">
+    <div class="mxyz_section_head">
+        <h2>施彩</h2>
+        <p>线条随 currentColor 上色，CSS 一处设色，处处生效。</p>
+    </div>
+    <div class="mxyz_trio">
+        <figure class="mxyz_piece"><div class="mxyz_piece_icon mxyz_c_ultra"><i data-lucide="palette"></i></div><figcaption class="mxyz_piece_label"><b>群青</b><span>currentColor</span></figcaption></figure>
+        <figure class="mxyz_piece"><div class="mxyz_piece_icon mxyz_c_ink"><i data-lucide="palette"></i></div><figcaption class="mxyz_piece_label"><b>玄墨</b><span>currentColor</span></figcaption></figure>
+        <figure class="mxyz_piece"><div class="mxyz_piece_icon mxyz_c_seal"><i data-lucide="palette"></i></div><figcaption class="mxyz_piece_label"><b>朱砂</b><span>currentColor</span></figcaption></figure>
+    </div>
+</section>
+
+<section class="mxyz_section">
+    <div class="mxyz_section_head">
+        <h2>如何取用</h2>
+        <p>脚本已下载至本目录 cdn，无需外网。</p>
+    </div>
+    <pre class="mxyz_code"><em>&lt;!-- 引入本地脚本 --&gt;</em>
+&lt;script src="cdn/lucide/lucide.min.js"&gt;&lt;/script&gt;
+
+<em>&lt;!-- 落一个名字，脚本将其替换为内联 SVG --&gt;</em>
+&lt;i data-lucide="palette"&gt;&lt;/i&gt;
+
+&lt;script&gt;lucide.createIcons();&lt;/script&gt;</pre>
+</section>
+
+<footer class="mxyz_footer">
+    <span>字形画廊 GLYPH ATELIER · 马昕玉子《高级网页设计》课堂实践</span>
+    <a href="iconfont-1.html">移步一号馆 · Font Awesome 字库 →</a>
+</footer>
+
+<script src="cdn/lucide/lucide.min.js"></script>
+<script>
+    lucide.createIcons();
+    /* 为「笔锋三档」各档设置不同的描边粗细 */
+    var mxyzStrokeGroups = document.querySelectorAll("[data-mxyz-stroke]");
+    mxyzStrokeGroups.forEach(function (mxyzGroup) {
+        var mxyzWidth = mxyzGroup.getAttribute("data-mxyz-stroke");
+        mxyzGroup.querySelectorAll("svg").forEach(function (mxyzSvg) {
+            mxyzSvg.setAttribute("stroke-width", mxyzWidth);
+        });
+    });
+</script>
+
+</body>
+</html>

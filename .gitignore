@@ -1,0 +1,2 @@
+# 含 Gitee 私人令牌的本地技能文件，禁止入库（防止公开仓库泄露令牌）
+SKILL/commit-push/SKILL.md

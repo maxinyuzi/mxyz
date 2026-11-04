@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<!--
+  作者：马昕玉子
+  建立时间：2026-11-04
+  使用大模型：GLM-5.3-Flash
+  功能名称：tab 选项卡（玉子通讯社 · 新闻分版切换）
+-->
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>玉子通讯社 · tab 选项卡 — 字形画廊</title>
+<style>
+    :root{
+        --mxyz_paper:#EFF1F4;
+        --mxyz_ink:#16181D;
+        --mxyz_ultra:#2A3BA0;
+        --mxyz_seal:#B33A2B;
+        --mxyz_mist:#7B8296;
+        --mxyz_display:"Bodoni MT","Didot","STKaiti","KaiTi","Kaiti SC",serif;
+        --mxyz_body:"Segoe UI","Microsoft YaHei",sans-serif;
+        --mxyz_mono:"Consolas","Courier New",monospace;
+        --mxyz_col:680px;
+    }
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{background:var(--mxyz_paper);color:var(--mxyz_ink);font-family:var(--mxyz_body);line-height:1.75}
+    a{color:inherit}
+    a:focus-visible,button:focus-visible{outline:2px solid var(--mxyz_seal);outline-offset:3px}
+
+    .mxyz_main{max-width:var(--mxyz_col);margin:0 auto;padding:22px 22px 60px}
+
+    /* 顶栏品牌 */
+    .mxyz_topbar{display:flex;align-items:center;gap:12px;margin-bottom:30px}
+    .mxyz_mark{width:36px;height:36px;background:var(--mxyz_seal);color:#fff;display:grid;place-items:center;
+        font-family:var(--mxyz_display);font-size:18px;border-radius:6px;transform:rotate(-4deg);flex:none}
+    .mxyz_brand{line-height:1.3;flex:1}
+    .mxyz_brand strong{font-family:var(--mxyz_display);font-weight:700;font-size:17px;letter-spacing:.12em;display:block}
+    .mxyz_brand span{font-size:11px;color:var(--mxyz_mist)}
+    .mxyz_back{font-size:13px;text-decoration:none;border:1px solid var(--mxyz_ink);
+        padding:6px 14px;border-radius:999px;transition:background .2s,color .2s;flex:none}
+    .mxyz_back:hover{background:var(--mxyz_ink);color:#fff}
+
+    /* 报头 */
+    .mxyz_masthead{display:flex;gap:22px;align-items:flex-start;margin-bottom:26px}
+    .mxyz_vertical{writing-mode:vertical-rl;font-family:var(--mxyz_display);font-weight:700;
+        font-size:clamp(2.2rem,8vw,3rem);letter-spacing:.24em;line-height:1}
+    .mxyz_masthead_sub{color:var(--mxyz_mist);font-size:13px;letter-spacing:.2em;padding-top:8px;
+        border-left:1px solid rgba(22,24,29,.15);padding-left:18px}
+    .mxyz_masthead_sub b{display:block;color:var(--mxyz_ultra);font-family:var(--mxyz_display);font-size:15px}
+
+    /* 选项卡（tab）栏 */
+    .mxyz_tablist{display:flex;border-bottom:2px solid rgba(22,24,29,.14)}
+    .mxyz_tab{flex:1;padding:13px 4px;background:none;border:0;font:inherit;font-size:15px;cursor:pointer;
+        color:var(--mxyz_mist);position:relative;transition:color .2s;letter-spacing:.06em}
+    .mxyz_tab:hover{color:var(--mxyz_ink)}
+    .mxyz_tab.mxyz_active{color:var(--mxyz_seal);font-weight:600}
+    .mxyz_tab::after{content:"";position:absolute;left:18%;right:18%;bottom:-2px;height:3px;
+        border-radius:2px 2px 0 0;background:transparent;transition:background .2s}
+    .mxyz_tab.mxyz_active::after{background:var(--mxyz_seal)}
+
+    /* 内容面板 */
+    .mxyz_pane{display:none;padding:20px 4px 6px}
+    .mxyz_pane.mxyz_active{display:block;animation:mxyz_fadein .35s ease both}
+    @keyframes mxyz_fadein{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+    .mxyz_news{list-style:none}
+    .mxyz_news li{display:flex;gap:14px;align-items:baseline;padding:12px 2px;
+        border-bottom:1px dashed rgba(22,24,29,.14)}
+    .mxyz_news li:last-child{border-bottom:0}
+    .mxyz_news time{font-family:var(--mxyz_mono);font-size:12px;color:var(--mxyz_mist);flex:none}
+    .mxyz_news b{font-size:15px;font-weight:600}
+    .mxyz_news p{font-size:13px;color:var(--mxyz_mist)}
+    .mxyz_hot_no{font-family:var(--mxyz_display);font-size:18px;color:var(--mxyz_ultra);flex:none;width:26px;text-align:center}
+    .mxyz_news li:first-child .mxyz_hot_no{color:var(--mxyz_seal)}
+
+    /* 第二组选项卡（复用演示）：排行版 */
+    .mxyz_rank_tabs .mxyz_tab{font-size:13px;padding:9px 4px}
+
+    /* 说明 */
+    .mxyz_section_head{display:flex;align-items:baseline;gap:12px;margin:40px 0 14px}
+    .mxyz_section_head h2{font-family:var(--mxyz_display);font-size:20px;letter-spacing:.14em;font-weight:700}
+    .mxyz_section_head p{color:var(--mxyz_mist);font-size:13px}
+    .mxyz_note{background:#fff;border:1px solid rgba(22,24,29,.1);border-radius:8px;padding:14px 18px;font-size:14px}
+    .mxyz_note .mxyz_mono{font-family:var(--mxyz_mono);font-size:12px;color:var(--mxyz_ultra)}
+    .mxyz_code{background:var(--mxyz_ink);color:#E7EAF3;border-radius:8px;padding:16px 20px;margin-top:12px;
+        font-family:var(--mxyz_mono);font-size:12px;line-height:1.9;overflow-x:auto;white-space:pre}
+    .mxyz_code em{color:#8FA3F5;font-style:normal}
+
+    .mxyz_footer{margin-top:44px;color:var(--mxyz_mist);font-size:12px;display:flex;gap:14px;flex-wrap:wrap}
+    .mxyz_footer a{color:var(--mxyz_ultra);text-decoration:none;border-bottom:1px solid rgba(42,59,160,.35)}
+
+    @media (max-width:600px){
+        .mxyz_masthead{flex-direction:column}
+        .mxyz_vertical{writing-mode:horizontal-tb;letter-spacing:.18em}
+        .mxyz_masthead_sub{border-left:0;padding-left:0;border-top:1px solid rgba(22,24,29,.15);padding-top:10px}
+    }
+    @media (prefers-reduced-motion:reduce){
+        .mxyz_pane.mxyz_active{animation:none}
+        .mxyz_tab,.mxyz_back{transition:none}
+    }
+</style>
+</head>
+<body>
+
+<main class="mxyz_main">
+
+    <header class="mxyz_topbar">
+        <div class="mxyz_mark" aria-hidden="true">字</div>
+        <div class="mxyz_brand">
+            <strong>字形画廊</strong>
+            <span>玉子通讯社 · tab 选项卡实践</span>
+        </div>
+        <a class="mxyz_back" href="index.html">返回首页</a>
+    </header>
+
+    <section class="mxyz_masthead">
+        <h1 class="mxyz_vertical">四方新声</h1>
+        <p class="mxyz_masthead_sub"><b>玉子通讯社</b>新闻分四版，点版而读；国内为头版。</p>
+    </section>
+
+    <!-- 第一组选项卡：新闻四版（国内新闻为默认选中） -->
+    <div class="mxyz_tabs" data-mxyz-tabs>
+        <div class="mxyz_tablist" role="tablist" aria-label="新闻分版">
+            <button class="mxyz_tab mxyz_active" type="button" role="tab" aria-selected="true" data-mxyz-tab="domestic">国内新闻</button>
+            <button class="mxyz_tab" type="button" role="tab" aria-selected="false" data-mxyz-tab="province">省内新闻</button>
+            <button class="mxyz_tab" type="button" role="tab" aria-selected="false" data-mxyz-tab="world">国际新闻</button>
+            <button class="mxyz_tab" type="button" role="tab" aria-selected="false" data-mxyz-tab="hot">最热新闻</button>
+        </div>
+
+        <div class="mxyz_pane mxyz_active" role="tabpanel" data-mxyz-pane="domestic">
+            <ul class="mxyz_news">
+                <li><time datetime="2026-11-03">11-03</time><div><b>全国职业技能大赛决赛收官</b><p>各省代表队同台竞技，数字设计与智能制造项目竞争尤为激烈。</p></div></li>
+                <li><time datetime="2026-11-02">11-02</time><div><b>高校「人工智能通识课」全面开课</b><p>新学期起面向全体新生开放，采用案例式小班教学。</p></div></li>
+                <li><time datetime="2026-11-01">11-01</time><div><b>绿色出行周正式启动</b><p>地铁与共享单车客流量创同期新高。</p></div></li>
+                <li><time datetime="2026-10-31">10-31</time><div><b>全民赠书计划走进第十年</b><p>累计惠及读者超两千万人次，乡村学校成重点投送点。</p></div></li>
+            </ul>
+        </div>
+
+        <div class="mxyz_pane" role="tabpanel" data-mxyz-pane="province">
+            <ul class="mxyz_news">
+                <li><time datetime="2026-11-03">11-03</time><div><b>省大学生程序设计竞赛落幕</b><p>我校代表队斩获两金一银，刷新参赛以来最好成绩。</p></div></li>
+                <li><time datetime="2026-11-02">11-02</time><div><b>省图书馆深夜书房延长开放</b><p>试点期间闭馆时间延至二十四时，预约需提前一天。</p></div></li>
+                <li><time datetime="2026-10-30">10-30</time><div><b>省青少年足球联赛开赛</b><p>四十八支球队报名参赛，揭幕战在大学城球场举行。</p></div></li>
+            </ul>
+        </div>
+
+        <div class="mxyz_pane" role="tabpanel" data-mxyz-pane="world">
+            <ul class="mxyz_news">
+                <li><time datetime="2026-11-03">11-03</time><div><b>国际联合实验室发布清洁能源报告</b><p>多国科研机构合作，新型储能方案效率提升近三成。</p></div></li>
+                <li><time datetime="2026-11-01">11-01</time><div><b>世界大学生设计展开幕</b><p>三十余个国家和地区的学生作品同场展出。</p></div></li>
+                <li><time datetime="2026-10-29">10-29</time><div><b>文化遗产数字化合作项目启动</b><p>首批对十处古迹进行毫米级三维建档。</p></div></li>
+            </ul>
+        </div>
+
+        <div class="mxyz_pane" role="tabpanel" data-mxyz-pane="hot">
+            <ul class="mxyz_news">
+                <li><span class="mxyz_hot_no">1</span><div><b>毕业二十年，老同学重拍合影</b><p>同一面墙、同一排站位，帖子引来上千条留言。</p></div></li>
+                <li><span class="mxyz_hot_no">2</span><div><b>大学生自印插画集三天售罄</b><p>首印五百册，加印登记通道已开启。</p></div></li>
+                <li><span class="mxyz_hot_no">3</span><div><b>校园咖啡车「第一杯半价」走红</b><p>活动照片刷屏社交平台，队伍排到了梧桐树下。</p></div></li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="mxyz_section_head">
+        <h2>再看一组</h2>
+        <p>同一份 js，换一版内容——排行版选项卡。</p>
+    </div>
+
+    <!-- 第二组选项卡：复用同一组件，仅数据不同 -->
+    <div class="mxyz_tabs mxyz_rank_tabs" data-mxyz-tabs>
+        <div class="mxyz_tablist" role="tablist" aria-label="排行版">
+            <button class="mxyz_tab mxyz_active" type="button" role="tab" aria-selected="true" data-mxyz-tab="day">日榜</button>
+            <button class="mxyz_tab" type="button" role="tab" aria-selected="false" data-mxyz-tab="week">周榜</button>
+            <button class="mxyz_tab" type="button" role="tab" aria-selected="false" data-mxyz-tab="month">月榜</button>
+        </div>
+
+        <div class="mxyz_pane mxyz_active" role="tabpanel" data-mxyz-pane="day">
+            <ul class="mxyz_news">
+                <li><span class="mxyz_hot_no">1</span><div><b>课堂实践展票选开启</b><p>三十份网页设计作业在线展出，投票今晚截止。</p></div></li>
+                <li><span class="mxyz_hot_no">2</span><div><b>画社周末写生活动报名</b><p>地点改为湖畔长廊，自带画具。</p></div></li>
+                <li><span class="mxyz_hot_no">3</span><div><b>摄影展征稿延期三天</b><p>主题「秋日光影」，欢迎手机作品投稿。</p></div></li>
+            </ul>
+        </div>
+
+        <div class="mxyz_pane" role="tabpanel" data-mxyz-pane="week">
+            <ul class="mxyz_news">
+                <li><span class="mxyz_hot_no">1</span><div><b>校园歌手大赛海选收官</b><p>六十组选手晋级，复赛下周五举行。</p></div></li>
+                <li><span class="mxyz_hot_no">2</span><div><b>读书会共读《山河笔记》</b><p>本周四晚分享 chapters 五至八。</p></div></li>
+                <li><span class="mxyz_hot_no">3</span><div><b>旧书市集成交创新高</b><p>周末两日成交两千余册。</p></div></li>
+            </ul>
+        </div>
+
+        <div class="mxyz_pane" role="tabpanel" data-mxyz-pane="month">
+            <ul class="mxyz_news">
+                <li><span class="mxyz_hot_no">1</span><div><b>网页设计课堂实践合集获赞</b><p>本页面正是其中一份作业。</p></div></li>
+                <li><span class="mxyz_hot_no">2</span><div><b>校园马拉松圆满完赛</b><p>千余名师生跑完十公里赛道。</p></div></li>
+                <li><span class="mxyz_hot_no">3</span><div><b>英语角主题月收官</b><p>四周共举办八场活动。</p></div></li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="mxyz_section_head">
+        <h2>如何复用</h2>
+        <p>js 外部引用于 js 文件夹，一组标记即可获得切换能力。</p>
+    </div>
+    <div class="mxyz_note">
+        <p>在容器上标记 <span class="mxyz_mono">data-mxyz-tabs</span>，按钮标记 <span class="mxyz_mono">data-mxyz-tab</span>、面板标记 <span class="mxyz_mono">data-mxyz-pane</span>（同名配对），页面加载即自动生效，无需再写一行切换代码。</p>
+    </div>
+    <pre class="mxyz_code"><em>&lt;!-- 外部引用 js 文件夹中的脚本 --&gt;</em>
+&lt;script src="js/mxyz_tabs.js"&gt;&lt;/script&gt;
+
+<em>&lt;!-- 任意多组选项卡，同一组件自动复用 --&gt;</em>
+&lt;div data-mxyz-tabs&gt;
+  &lt;button data-mxyz-tab="a"&gt;…&lt;/button&gt;
+  &lt;div data-mxyz-pane="a"&gt;…&lt;/div&gt;
+&lt;/div&gt;</pre>
+
+    <footer class="mxyz_footer">
+        <span>字形画廊 GLYPH ATELIER · 马昕玉子《高级网页设计》课堂实践</span>
+        <a href="index.html">返回首页</a>
+    </footer>
+
+</main>
+
+<!-- 外部引用 js 文件夹中的选项卡脚本 -->
+<script src="js/mxyz_tabs.js"></script>
+
+</body>
+</html>

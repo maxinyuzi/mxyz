@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<!--
+  作者：马昕玉子
+  建立时间：2026-11-04
+  使用大模型：GLM-5.3-Flash
+  功能名称：汽车资讯 tab 选项卡（项目一比一还原）
+-->
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>汽车资讯选项卡 · 项目一比一还原 — 字形画廊</title>
+<style>
+    :root{
+        --mxyz_line:#cfcfcf;      /* 模块边框灰 */
+        --mxyz_tab_on:#1b2c49;    /* 选中标签深藏青 */
+        --mxyz_red:#cc0000;       /* 头条红 */
+        --mxyz_txt:#555555;       /* 列表正文灰 */
+        --mxyz_date:#9a9a9a;      /* 日期浅灰 */
+        --mxyz_page:#f0f1f3;      /* 页面底色 */
+    }
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{background:var(--mxyz_page);font-family:"SimSun","宋体","Microsoft YaHei",serif}
+    a{color:inherit}
+    a:focus-visible,button:focus-visible{outline:2px solid var(--mxyz_red);outline-offset:3px}
+
+    /* 页面辅助元素（模块之外的页面框架，不影响模块本身还原度） */
+    .mxyz_page_top{position:fixed;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;
+        padding:12px 20px;font-family:"Microsoft YaHei",sans-serif;font-size:13px;color:#8a8f98;z-index:10}
+    .mxyz_page_top b{color:#33343a;font-weight:600;letter-spacing:.08em}
+    .mxyz_back{font-size:13px;text-decoration:none;border:1px solid #33343a;color:#33343a;
+        padding:6px 14px;border-radius:999px;transition:background .2s,color .2s}
+    .mxyz_back:hover{background:#33343a;color:#fff}
+
+    .mxyz_auto_stage{min-height:100vh;display:grid;place-items:center;padding:70px 16px 40px}
+
+    /* ───────── 还原模块：宽 478px，白底细灰边 ───────── */
+    .mxyz_auto_widget{width:478px;max-width:100%;background:#fff;border:1px solid var(--mxyz_line)}
+
+    /* 标签行：5 个等宽标签，选中项深藏青底白字并与内容区相连 */
+    .mxyz_auto_tablist{display:flex;border-bottom:1px solid var(--mxyz_line)}
+    .mxyz_auto_tab{flex:1;height:30px;line-height:30px;text-align:center;font-size:14px;font-family:inherit;
+        background:#fff;color:#333;border:0;border-right:1px solid var(--mxyz_line);cursor:pointer;transition:background .15s}
+    .mxyz_auto_tab:last-child{border-right:0}
+    .mxyz_auto_tab:hover{background:#f4f4f4}
+    .mxyz_auto_tab.mxyz_active{background:var(--mxyz_tab_on);color:#fff;font-weight:bold;
+        border-bottom:1px solid var(--mxyz_tab_on);margin-bottom:-1px;position:relative}
+
+    /* 内容面板：红色头条 + 六条新闻列表 */
+    .mxyz_auto_pane{display:none;padding:6px 14px 12px}
+    .mxyz_auto_pane.mxyz_active{display:block}
+    .mxyz_auto_head{color:var(--mxyz_red);font-size:16px;font-weight:normal;letter-spacing:.02em;padding:8px 0 8px 2px}
+    .mxyz_auto_list{list-style:none}
+    .mxyz_auto_list li{display:flex;align-items:baseline;height:26px;line-height:26px;font-size:12px;color:var(--mxyz_txt)}
+    .mxyz_auto_txt{flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+    .mxyz_auto_txt::before{content:"•";color:#333;font-size:11px;margin-right:9px}
+    .mxyz_auto_date{flex:none;margin-left:12px;color:var(--mxyz_date)}
+
+    /* 页脚说明 */
+    .mxyz_page_note{max-width:478px;margin:14px auto 0;font-family:"Microsoft YaHei",sans-serif;
+        font-size:12px;color:#9aa0a8;text-align:center;line-height:1.9}
+    .mxyz_page_note .mxyz_mono{font-family:Consolas,monospace;color:#6b7280}
+
+    @media (max-width:560px){
+        .mxyz_auto_tab{font-size:13px;height:32px;line-height:32px}
+        .mxyz_auto_list li{height:30px;line-height:30px}
+    }
+    @media (prefers-reduced-motion:reduce){
+        .mxyz_auto_tab,.mxyz_back{transition:none}
+    }
+</style>
+</head>
+<body>
+
+<div class="mxyz_page_top">
+    <b>字形画廊 · 项目一比一还原</b>
+    <a class="mxyz_back" href="index.html">返回首页</a>
+</div>
+
+<main class="mxyz_auto_stage">
+
+    <!-- 一比一还原模块：5 个标签（导购为默认选中），js/mxyz_tabs.js 外部引用驱动切换 -->
+    <div>
+        <div class="mxyz_auto_widget" data-mxyz-tabs>
+            <div class="mxyz_auto_tablist" role="tablist" aria-label="汽车资讯栏目">
+                <button class="mxyz_auto_tab mxyz_active" type="button" role="tab" aria-selected="true" data-mxyz-tab="daogou">导购</button>
+                <button class="mxyz_auto_tab" type="button" role="tab" aria-selected="false" data-mxyz-tab="p39">3-9万</button>
+                <button class="mxyz_auto_tab" type="button" role="tab" aria-selected="false" data-mxyz-tab="p917">9-17万</button>
+                <button class="mxyz_auto_tab" type="button" role="tab" aria-selected="false" data-mxyz-tab="p1742">17-42万</button>
+                <button class="mxyz_auto_tab" type="button" role="tab" aria-selected="false" data-mxyz-tab="suv">SUV</button>
+            </div>
+
+            <!-- 导购（默认选中，对应图5） -->
+            <div class="mxyz_auto_pane mxyz_active" role="tabpanel" data-mxyz-pane="daogou">
+                <h2 class="mxyz_auto_head">B级品质满足A级需求 路盛E70亮点详解</h2>
+                <ul class="mxyz_auto_list">
+                    <li><span class="mxyz_auto_txt">购车必看 凯迪拉克XTS领先型28T深度体验</span><time class="mxyz_auto_date">12/20</time></li>
+                    <li><span class="mxyz_auto_txt">爸爸去哪? 亲子出游适合车型和注意事项</span><time class="mxyz_auto_date">12/20</time></li>
+                    <li><span class="mxyz_auto_txt">推荐，X1等城市四驱Style+经济省油的SUV</span><time class="mxyz_auto_date">12/19</time></li>
+                    <li><span class="mxyz_auto_txt">全景天窗/保养便利 30万办齐四驱SUV推荐</span><time class="mxyz_auto_date">12/19</time></li>
+                    <li><span class="mxyz_auto_txt">全民摇号时代?六款低价占号必备车型推荐</span><time class="mxyz_auto_date">12/19</time></li>
+                    <li><span class="mxyz_auto_txt">最高暴降20万！奥迪Q5等年底特惠SUV盘点</span><time class="mxyz_auto_date">12/18</time></li>
+                </ul>
+            </div>
+
+            <!-- 3-9万（对应图4） -->
+            <div class="mxyz_auto_pane" role="tabpanel" data-mxyz-pane="p39">
+                <h2 class="mxyz_auto_head">最低仅4.6万元起 超低价SUV购买价值点评</h2>
+                <ul class="mxyz_auto_list">
+                    <li><span class="mxyz_auto_txt">全民摇号时代?六款低价占号必备车型推荐</span><time class="mxyz_auto_date">12/19</time></li>
+                    <li><span class="mxyz_auto_txt">凌派/观致3等 2013年全新热门家用车盘点</span><time class="mxyz_auto_date">12/11</time></li>
+                    <li><span class="mxyz_auto_txt">坚持低价高配路线！静态评测华泰路盛E70</span><time class="mxyz_auto_date">12/09</time></li>
+                    <li><span class="mxyz_auto_txt">买车先看销量 10月份销量前十名轿车盘点</span><time class="mxyz_auto_date">11/29</time></li>
+                    <li><span class="mxyz_auto_txt">抄底正当时 车展后清仓优惠老款车型推荐</span><time class="mxyz_auto_date">11/28</time></li>
+                    <li><span class="mxyz_auto_txt">土豪气质 细数车展那些低价车上的“神器”</span><time class="mxyz_auto_date">11/27</time></li>
+                </ul>
+            </div>
+
+            <!-- 9-17万（对应图3） -->
+            <div class="mxyz_auto_pane" role="tabpanel" data-mxyz-pane="p917">
+                <h2 class="mxyz_auto_head">15万级降价车更值 预算/油耗/空间较真</h2>
+                <ul class="mxyz_auto_list">
+                    <li><span class="mxyz_auto_txt">爸爸去哪? 亲子出游适合车型和注意事项</span><time class="mxyz_auto_date">12/20</time></li>
+                    <li><span class="mxyz_auto_txt">最高暴降20万！奥迪Q5等年底特惠SUV盘点</span><time class="mxyz_auto_date">12/18</time></li>
+                    <li><span class="mxyz_auto_txt">配侧气帘值得肯定！传祺GA3碰撞试验图解</span><time class="mxyz_auto_date">12/18</time></li>
+                    <li><span class="mxyz_auto_txt">高尔夫7≠两厢版速腾 配置/动力差异解读</span><time class="mxyz_auto_date">12/18</time></li>
+                    <li><span class="mxyz_auto_txt">花小钱也能养SUV 翼博等入门SUV使用手册</span><time class="mxyz_auto_date">12/17</time></li>
+                    <li><span class="mxyz_auto_txt">最高优惠4.3万 十款15万SUV年末购买推荐</span><time class="mxyz_auto_date">12/16</time></li>
+                </ul>
+            </div>
+
+            <!-- 17-42万（对应图2） -->
+            <div class="mxyz_auto_pane" role="tabpanel" data-mxyz-pane="p1742">
+                <h2 class="mxyz_auto_head">改变品牌的未来 认识豪华品牌最便宜车型</h2>
+                <ul class="mxyz_auto_list">
+                    <li><span class="mxyz_auto_txt">爸爸去哪? 亲子出游适合车型和注意事项</span><time class="mxyz_auto_date">12/20</time></li>
+                    <li><span class="mxyz_auto_txt">推荐，X1等城市四驱Style+经济省油的SUV</span><time class="mxyz_auto_date">12/19</time></li>
+                    <li><span class="mxyz_auto_txt">全景天窗/保养便利 30万办齐四驱SUV推荐</span><time class="mxyz_auto_date">12/19</time></li>
+                    <li><span class="mxyz_auto_txt">最高暴降20万！奥迪Q5等年底特惠SUV盘点</span><time class="mxyz_auto_date">12/18</time></li>
+                    <li><span class="mxyz_auto_txt">比拼硬实力 8款低配四驱紧凑SUV性能点评</span><time class="mxyz_auto_date">12/18</time></li>
+                    <li><span class="mxyz_auto_txt">新蒙迪欧/雅阁等！盘点2013中级车大变脸</span><time class="mxyz_auto_date">12/17</time></li>
+                </ul>
+            </div>
+
+            <!-- SUV（对应图1） -->
+            <div class="mxyz_auto_pane" role="tabpanel" data-mxyz-pane="suv">
+                <h2 class="mxyz_auto_head">改变品牌的未来 认识豪华品牌最便宜车型</h2>
+                <ul class="mxyz_auto_list">
+                    <li><span class="mxyz_auto_txt">推荐，X1等城市四驱Style+经济省油的SUV</span><time class="mxyz_auto_date">12/19</time></li>
+                    <li><span class="mxyz_auto_txt">全景天窗/保养便利 30万办齐四驱SUV推荐</span><time class="mxyz_auto_date">12/19</time></li>
+                    <li><span class="mxyz_auto_txt">最高暴降20万！奥迪Q5等年底特惠SUV盘点</span><time class="mxyz_auto_date">12/18</time></li>
+                    <li><span class="mxyz_auto_txt">比拼硬实力 8款低配四驱紧凑SUV性能点评</span><time class="mxyz_auto_date">12/18</time></li>
+                    <li><span class="mxyz_auto_txt">花小钱也能养SUV 翼博等入门SUV使用手册</span><time class="mxyz_auto_date">12/17</time></li>
+                    <li><span class="mxyz_auto_txt">最高优惠4.3万 十款15万SUV年末购买推荐</span><time class="mxyz_auto_date">12/16</time></li>
+                </ul>
+            </div>
+        </div>
+
+        <p class="mxyz_page_note">
+            一比一还原自 1-5.jpg 参考截图 · 切换逻辑由外部 <span class="mxyz_mono">js/mxyz_tabs.js</span> 驱动<br>
+            马昕玉子《高级网页设计》课堂实践 · <a href="index.html">返回首页</a>
+        </p>
+    </div>
+
+</main>
+
+<!-- 外部引用 js 文件夹中的可复用选项卡脚本（含监听事件：先清除所有选中，再设置当前选中） -->
+<script src="js/mxyz_tabs.js"></script>
+
+</body>
+</html>

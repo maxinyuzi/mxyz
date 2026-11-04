@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<style>
+/* 轮播基础样式 */
+#maCarouselTrack {
+  display: flex;
+  transition: transform 0.5s ease;
+}
+#maCarouselTrack img {
+  width: 100%;
+  flex-shrink: 0;
+}
+#maCarouselDots { display: flex; gap: 8px; margin-top:10px; }
+#maCarouselDots > div { width:10px;height:10px;border-radius:50%;background:#ccc;cursor:pointer; }
+#maCarouselDots > div.ma_on { background:#f60; }
+
+/* Tab页签 */
+.ma_tab { padding:6px 12px; cursor:pointer; }
+.ma_tab.ma_on { color:#f60; font-weight:bold; }
+
+/* 弹幕 */
+#maDanmakuLayer {
+  position: relative;
+  width:100%;
+  height:300px;
+  overflow:hidden;
+  background:#000;
+}
+.ma_danmu-item {
+  position: absolute;
+  left: 100%;
+  white-space: nowrap;
+  font-size:16px;
+  animation: ma_danmu-move 9s linear forwards;
+}
+@keyframes ma_danmu-move {
+  to { transform: translateX(calc(-100% - 100vw)); }
+}
+</style>
+</head>
+<body>
+
+<!-- 轮播DOM -->
+<div class="carousel">
+  <div id="maCarouselTrack"></div>
+  <div id="maCarouselDots"></div>
+</div>
+
+<!-- Tab区域 -->
+<div id="tabBox">
+  <div class="ma_tab" data-tab="all">全部</div>
+  <div class="ma_tab" data-tab="hot">热门</div>
+</div>
+
+<!-- 视频网格 -->
+<div id="maVideoGrid"></div>
+<div id="maLoading">加载中...</div>
+
+<!-- 弹幕区域 -->
+<div id="maDanmakuLayer"></div>
+<input id="maDanmuInput" placeholder="输入弹幕">
+<button onclick="sendDanmu()">发送弹幕</button>
+
+<script>
+// ===================== 全局变量声明 =====================
+let box = document.getElementById('tabBox');
+let currentTab = 'all';
+let loading = false;
+let renderedCount = 0;
+let pageSize = 6;
+let playing = true;
+let danmus = [
+  {text:"第一条弹幕"},
+  {text:"太好看啦"},
+  {text:"666"}
+];
+let i = 0; // 弹幕索引
+
+// ===================== 1. 轮播图自动播放 =====================
+function initCarousel(banners) {
+  var track = document.getElementById("maCarouselTrack");
+  var dots = document.getElementById("maCarouselDots");
+  // 渲染图片
+  track.innerHTML = banners.map(function (b) {
+    return '<img src="' + b.img + '" alt="' + b.title + '">';
+  }).join("");
+  // 生成指示点
+  dots.innerHTML = banners.map(()=>`<div></div>`).join('');
+
+  var idx = 0;
+  // 初始点亮第一个指示点
+  dots.children[0].classList.add('ma_on');
+
+  setInterval(function () {
+    idx = (idx + 1) % banners.length;
+    track.style.transform = "translateX(-" + idx * 100 + "%)";
+    Array.prototype.forEach.call(dots.children, function (d, i) {
+      d.classList.toggle("ma_on", i === idx);
+    });
+  }, 3500);
+}
+
+// 测试轮播数据
+const bannerList = [
+  {img:"https://picsum.photos/id/1/800/300", title:"banner1"},
+  {img:"https://picsum.photos/id/2/800/300", title:"banner2"},
+  {img:"https://picsum.photos/id/3/800/300", title:"banner3"},
+];
+initCarousel(bannerList);
+
+// ===================== 2. Tab分类页签切换 =====================
+box.addEventListener("click", function (e) {
+  var btn = e.target.closest(".ma_tab");
+  if (!btn) return;
+  currentTab = btn.dataset.tab;
+  Array.prototype.forEach.call(box.children, function (b) {
+    b.classList.toggle("ma_on", b === btn);
+  });
+  renderedCount = 0;
+  document.getElementById("maVideoGrid").innerHTML = "";
+  loadMore(true); // 重新渲染
+});
+
+// ===================== 3. 无限滚动 IntersectionObserver =====================
+let io; // 把observer提出来，方便复用
+function initInfiniteScroll() {
+  // 创建哨兵元素
+  var sentinel = document.createElement("div");
+  sentinel.className = "sentinel";
+  sentinel.style.height = "1px";
+  const loadingEl = document.getElementById("maLoading");
+  loadingEl.after(sentinel);
+
+  io = new IntersectionObserver(function (entries) {
+    if (entries[0].isIntersecting) loadMore();
+  }, { rootMargin: "300px" });
+  io.observe(sentinel);
+}
+
+// 模拟生成视频卡片
+function videoCard(v){
+  const div = document.createElement('div');
+  div.style.padding = '10px';
+  div.textContent = v.name;
+  return div;
+}
+
+function loadMore(isReset) {
+  if (loading) return;
+  loading = true;
+  const loadingEl = document.getElementById("maLoading");
+  loadingEl.style.display = "block";
+
+  // 模拟数据
+  const mockData = [
+    {name:"视频1"},{name:"视频2"},{name:"视频3"},
+    {name:"视频4"},{name:"视频5"},{name:"视频6"},
+  ]
+  const slice = mockData;
+  const grid = document.getElementById("maVideoGrid");
+
+  setTimeout(function () {
+    slice.forEach(function (v) { grid.appendChild(videoCard(v)); });
+    loadingEl.style.display = "none";
+    loading = false;
+  }, 350);
+}
+// 初始化无限滚动
+initInfiniteScroll();
+loadMore(true);
+
+// ===================== 5. 弹幕模块 =====================
+function spawnDanmu(text, color) {
+  var item = document.createElement("span");
+  item.className = "ma_danmu-item";
+  item.textContent = text;
+  item.style.top = Math.floor(Math.random() * 5) * 26 + 8 + "px";
+  if (color) item.style.color = color;
+  item.style.animationDuration = (7 + Math.random() * 4) + "s";
+  document.getElementById("maDanmakuLayer").appendChild(item);
+  item.addEventListener("animationend", function () { item.remove(); });
+}
+
+// 自动弹幕定时器
+setInterval(function () {
+  if (playing && danmus?.length) {
+    spawnDanmu(danmus[i++ % danmus.length].text);
+  }
+}, 1200);
+
+// 发送弹幕
+function sendDanmu() {
+  var text = document.getElementById("maDanmuInput").value.trim();
+  if (!text) {
+    alert("弹幕内容不能为空");
+    return;
+  }
+  spawnDanmu(text, "#ffd04d");
+  alert("弹幕发送成功");
+  document.getElementById("maDanmuInput").value = '';
+}
+</script>
+</body>
+</html>
