@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<!--
+  作者：马昕玉子
+  建立时间：2026-11-13
+  使用大模型：GLM-5.3-Flash
+  功能名称：诗词展示页（上图下文结构；Promise.all 并发获取诗词与作者；支持关键词搜索与按标题长度排序）
+-->
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>诗词展示 · 上图下文</title>
+  <style>
+    /* 全局样式重置与页面背景 */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: "Microsoft YaHei", sans-serif;
+      background: linear-gradient(135deg, #f5f0e8, #e8ddd0);
+      min-height: 100vh;
+      padding: 30px 20px;
+    }
+
+    /* 页面主标题 */
+    .mxyz_page-title {
+      text-align: center;
+      color: #5a4632;
+      font-size: 32px;
+      margin-bottom: 24px;
+      letter-spacing: 6px;
+    }
+
+    /* 工具栏：搜索框 + 排序按钮 */
+    .mxyz_toolbar {
+      max-width: 1200px;
+      margin: 0 auto 24px;
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .mxyz_search-input {
+      width: 320px;
+      padding: 10px 16px;
+      border: 1px solid #b8875b;
+      border-radius: 20px;
+      font-size: 14px;
+      outline: none;
+      background: #fffdf8;
+      color: #3d2f20;
+    }
+    .mxyz_search-input:focus {
+      box-shadow: 0 0 0 3px rgba(184, 135, 91, 0.25);
+    }
+    .mxyz_sort-btn {
+      padding: 10px 22px;
+      border: 1px solid #b8875b;
+      border-radius: 20px;
+      background: #fffdf8;
+      color: #8a6d3b;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background 0.3s, color 0.3s;
+    }
+    .mxyz_sort-btn:hover {
+      background: #b8875b;
+      color: #fff;
+    }
+
+    /* 诗词卡片容器：网格布局自适应排列 */
+    .mxyz_poems-wrap {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 24px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    /* 单张诗词卡片：上图下文结构 */
+    .mxyz_poem-card {
+      background: #fffdf8;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 14px rgba(90, 70, 50, 0.18);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .mxyz_poem-card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 10px 22px rgba(90, 70, 50, 0.28);
+    }
+
+    /* 卡片上半部分：图片 */
+    .mxyz_poem-img {
+      width: 100%;
+      height: 200px;
+      object-fit: cover;
+      display: block;
+    }
+
+    /* 卡片下半部分：文字区 */
+    .mxyz_poem-info {
+      padding: 16px 18px 20px;
+    }
+    .mxyz_poem-title {
+      font-size: 20px;
+      color: #3d2f20;
+      margin-bottom: 10px;
+      border-left: 4px solid #b8875b;
+      padding-left: 10px;
+    }
+    .mxyz_poem-author {
+      display: inline-block;
+      font-size: 12px;
+      color: #b8875b;
+      border: 1px solid #d9c3a5;
+      border-radius: 10px;
+      padding: 1px 10px;
+      margin-bottom: 10px;
+    }
+    .mxyz_poem-content {
+      font-size: 14px;
+      color: #7a6a56;
+      line-height: 1.8;
+    }
+
+    /* 加载与错误提示 */
+    .mxyz_tip {
+      text-align: center;
+      color: #9a8b76;
+      font-size: 16px;
+      padding: 40px 0;
+      grid-column: 1 / -1;
+    }
+
+    /* 返回首页链接 */
+    .mxyz_back-home {
+      display: inline-block;
+      margin: 30px auto 0;
+      color: #8a6d3b;
+      text-decoration: none;
+      font-size: 15px;
+      padding: 8px 20px;
+      border: 1px solid #b8875b;
+      border-radius: 20px;
+      transition: background 0.3s, color 0.3s;
+    }
+    .mxyz_back-home:hover {
+      background: #b8875b;
+      color: #fff;
+    }
+    .mxyz_footer {
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <h1 class="mxyz_page-title">诗 词 展 示</h1>
+
+  <!-- 工具栏：关键词搜索 + 按标题长度排序 -->
+  <div class="mxyz_toolbar">
+    <input type="text" class="mxyz_search-input" id="mxyz_searchInput" placeholder="输入关键词，按标题或内容筛选…">
+    <button class="mxyz_sort-btn" id="mxyz_sortBtn">按标题长度排序</button>
+  </div>
+
+  <!-- 诗词卡片渲染容器 -->
+  <div class="mxyz_poems-wrap" id="mxyz_poemsWrap">
+    <p class="mxyz_tip">正在从服务器加载数据……</p>
+  </div>
+
+  <div class="mxyz_footer">
+    <a class="mxyz_back-home" href="index.html">返回首页</a>
+  </div>
+
+  <script>
+    // mxyz_allPoems：缓存服务器返回的全部诗词，搜索与排序都基于它本地加工，不重新发请求
+    let mxyz_allPoems = [];
+
+    // mxyz_sortAsc：记录当前排序方向（null=默认顺序，true=标题从短到长，false=从长到短）
+    let mxyz_sortAsc = null;
+
+    // mxyz_fetchData：用 Promise.all 并发请求诗词列表和作者列表两个接口，同时取回两份数据
+    async function mxyz_fetchData() {
+      const wrap = document.getElementById('mxyz_poemsWrap');
+      try {
+        // 两个请求同时发出，Promise.all 等它们全部完成后再往下走
+        const [poemsRes, authorsRes] = await Promise.all([
+          fetch('http://localhost:3004/poems'),
+          fetch('http://localhost:3004/api/authors')
+        ]);
+        if (!poemsRes.ok || !authorsRes.ok) throw new Error('接口响应异常');
+
+        // 响应对象要先调 .json() 才能拿到真正的数据
+        const poems = await poemsRes.json();
+        const authors = await authorsRes.json();
+
+        // 缓存全部数据并首次渲染
+        mxyz_allPoems = poems;
+        mxyz_render();
+
+        // 在控制台输出作者列表，体现第二个接口的数据被使用
+        console.log('作者列表：', authors);
+      } catch (err) {
+        // 请求失败（如服务器未启动）时给出错误提示，而不是白屏
+        wrap.innerHTML = '<p class="mxyz_tip">数据加载失败：请先在 db 文件夹中启动服务器（node server.js，端口 3004）</p>';
+      }
+    }
+
+    // mxyz_render：根据搜索关键词与排序方向对本地缓存数据加工后，重新渲染卡片列表
+    function mxyz_render() {
+      const wrap = document.getElementById('mxyz_poemsWrap');
+      const keyword = document.getElementById('mxyz_searchInput').value.trim();
+
+      // 第一步：过滤——标题或内容包含关键词的才保留
+      let list = mxyz_allPoems.filter(item => {
+        return !keyword ||
+          item.title.includes(keyword) ||
+          item.content.includes(keyword);
+      });
+
+      // 第二步：排序——按标题字符长度升序/降序（复制一份再排，避免改动原始缓存）
+      if (mxyz_sortAsc !== null) {
+        list = [...list].sort((a, b) =>
+          mxyz_sortAsc ? a.title.length - b.title.length : b.title.length - a.title.length
+        );
+      }
+
+      // 第三步：渲染——过滤后无数据给出提示，否则生成上图下文卡片
+      if (list.length === 0) {
+        wrap.innerHTML = '<p class="mxyz_tip">没有匹配「' + keyword + '」的诗词</p>';
+        return;
+      }
+      wrap.innerHTML = '';
+      list.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'mxyz_poem-card';
+        // 图片走本地 3004 端口的代理接口，绕过 gitee 防盗链
+        card.innerHTML = `
+          <img class="mxyz_poem-img" src="http://localhost:3004/img?url=${encodeURIComponent(item.pic)}" alt="${item.title}">
+          <div class="mxyz_poem-info">
+            <h2 class="mxyz_poem-title">${item.title}</h2>
+            <span class="mxyz_poem-author">${item.author}</span>
+            <p class="mxyz_poem-content">${item.content}</p>
+          </div>
+        `;
+        wrap.appendChild(card);
+      });
+    }
+
+    // 搜索框输入事件：每输入一个字符就基于本地缓存重新过滤渲染
+    document.getElementById('mxyz_searchInput').addEventListener('input', mxyz_render);
+
+    // 排序按钮点击事件：在 默认 → 标题短到长 → 标题长到短 三种状态间循环切换
+    document.getElementById('mxyz_sortBtn').addEventListener('click', function () {
+      if (mxyz_sortAsc === null) {
+        mxyz_sortAsc = true;
+        this.textContent = '标题：短 → 长（再点切换）';
+      } else if (mxyz_sortAsc === true) {
+        mxyz_sortAsc = false;
+        this.textContent = '标题：长 → 短（再点恢复）';
+      } else {
+        mxyz_sortAsc = null;
+        this.textContent = '按标题长度排序';
+      }
+      mxyz_render();
+    });
+
+    // 页面加载完成后立即并发获取并渲染诗词数据
+    mxyz_fetchData();
+  </script>
+</body>
+</html>

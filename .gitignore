@@ -1,2 +1,8 @@
 # 含 Gitee 私人令牌的本地技能文件，禁止入库（防止公开仓库泄露令牌）
 SKILL/commit-push/SKILL.md
+
+# npm 依赖目录，体积大且可由 package.json 恢复
+node_modules/
+
+# IDE 生成的临时分享压缩包
+.trae-html-share-packages/
