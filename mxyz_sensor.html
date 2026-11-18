@@ -114,6 +114,59 @@
       min-height: 16px;
     }
 
+    /* ===== B 选项：倾斜视差 ===== */
+    .mxyz_parallax-card {
+      max-width: 420px;
+      margin: 20px auto 0;
+      background: #fff7ef;
+      color: #4a3222;
+      border-radius: 18px;
+      padding: 18px;
+      text-align: center;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    }
+    .mxyz_parallax-card h2 { font-size: 17px; margin-bottom: 4px; }
+    .mxyz_parallax-card .mxyz_plx-tip { font-size: 12px; color: #a9825f; margin-bottom: 12px; }
+
+    /* 视差场景：overflow hidden 裁掉层移动溢出的部分 */
+    .mxyz_plx-scene {
+      position: relative;
+      height: 220px;
+      border-radius: 14px;
+      overflow: hidden;
+      background: linear-gradient(180deg, #fcd9a0 0%, #f7b267 60%, #e07a5f 100%);
+    }
+    /* 视差层：绝对定位铺满，按 data-depth 系数做不同幅度位移 */
+    .mxyz_plx-layer {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 18px;
+      font-size: 34px;
+      will-change: transform;
+      transition: transform 0.08s linear; /* 轻微平滑，消除传感器抖动 */
+    }
+    .mxyz_plx-sun { position: absolute; right: 24px; top: 20px; font-size: 44px; }
+    .mxyz_plx-title {
+      position: absolute;
+      left: 0; right: 0;
+      bottom: 10px;
+      text-align: center;
+      font-size: 15px;
+      font-weight: bold;
+      color: #7a4218;
+      text-shadow: 0 1px 3px rgba(255, 255, 255, 0.6);
+    }
+    /* 倾斜角度读数 */
+    .mxyz_plx-meter {
+      margin-top: 10px;
+      font-family: Consolas, monospace;
+      font-size: 12px;
+      color: #a9825f;
+    }
+
     /* 运行录屏插入区 */
     .mxyz_video-box {
       max-width: 420px;
@@ -198,10 +251,33 @@
 
   <!-- 降级 / 权限按钮 -->
   <div class="mxyz_btn-area">
-    <button class="mxyz_btn" id="mxyz_permBtn">允许使用动作传感器（iOS）</button>
+    <button class="mxyz_btn" id="mxyz_permBtn">允许使用传感器（摇一摇 + 倾斜视差）</button>
     <button class="mxyz_btn" id="mxyz_manualBtn">点我摇一次（降级方案）</button>
   </div>
   <p class="mxyz_cool-tip" id="mxyz_coolTip"></p>
+
+  <!-- ===== B 选项：倾斜视差场景 ===== -->
+  <div class="mxyz_parallax-card">
+    <h2>倾斜视差 · 手机左右倾斜试试</h2>
+    <p class="mxyz_plx-tip" id="mxyz_plxTip">前后层元素随倾斜方向做不同幅度位移，产生立体感</p>
+    <div class="mxyz_plx-scene" id="mxyz_plxScene">
+      <!-- 远景层：depth 小，位移小 -->
+      <div class="mxyz_plx-layer" data-depth="0.5">
+        <span>🏔</span><span>🏙</span><span>🌁</span>
+      </div>
+      <!-- 中景层：depth 中等 -->
+      <div class="mxyz_plx-layer" data-depth="1">
+        <span>🍢</span><span>🥟</span><span>🍡</span><span>🧋</span>
+      </div>
+      <!-- 近景层：depth 大，位移大 -->
+      <div class="mxyz_plx-layer" data-depth="1.8" style="font-size:52px">
+        <span>🍚</span><span>🦆</span>
+      </div>
+      <div class="mxyz_plx-sun" data-depth="0.3">☀️</div>
+      <div class="mxyz_plx-title">深夜食堂 · 倾斜你的手机</div>
+    </div>
+    <p class="mxyz_plx-meter">gamma(左右): <b id="mxyz_gammaVal">--</b>　beta(前后): <b id="mxyz_betaVal">--</b></p>
+  </div>
 
   <!-- 运行录屏插入区：选择本地视频即可播放 -->
   <div class="mxyz_video-box">
@@ -222,6 +298,9 @@
     静止时接近 0，但部分老设备不支持（值为 null），必须做判空防御。<br>
     本页摇动检测用 accelerationIncludingGravity：摇动会让重力分量在各轴间剧烈变化，
     三轴平方和开方很容易超过阈值 18，检测更灵敏。
+    <br><b>倾斜视差</b>用的是 deviceorientation 事件：gamma 是手机左右倾斜角、beta 是前后倾斜角，
+    每层元素带一个 depth（深度）系数，位移 = 角度 × 系数，层与层移动快慢不同就产生了立体视差。
+    传感器不可用时用鼠标位置模拟倾斜角度，同一套 mxyz_applyParallax 函数照常工作。
   </div>
 
   <a class="mxyz_back" href="index.html">返回首页</a>
@@ -304,28 +383,34 @@
       }
     }
 
-    // mxyz_initPermission：iOS 13+ 需要用户手势内主动申请动作传感器权限
+    // mxyz_initPermission：iOS 13+ 需要用户手势内主动申请传感器权限（动作 + 方向一起申请）
     function mxyz_initPermission() {
+      // 组装需要申请的权限 Promise：摇一摇用 DeviceMotion，倾斜视差用 DeviceOrientation
+      const requests = [];
       if (typeof DeviceMotionEvent !== 'undefined' &&
           typeof DeviceMotionEvent.requestPermission === 'function') {
-        DeviceMotionEvent.requestPermission()
-          .then(state => {
-            if (state === 'granted') {
-              window.addEventListener('devicemotion', mxyz_onMotion);
-              document.getElementById('mxyz_permBtn').classList.remove('mxyz_show');
-            } else {
-              // 用户拒绝授权：提示并启用降级按钮
-              mxyz_enterFallback('授权被拒绝，请在设置中允许「动作与方向」');
-            }
-          })
-          .catch(() => mxyz_enterFallback('权限申请失败'));
-      } else if (typeof DeviceMotionEvent === 'undefined') {
-        // 完全没有 devicemotion（多数桌面浏览器）：降级
-        mxyz_enterFallback();
-      } else {
-        // 非 iOS 标准 API：直接监听，等待首条数据验证支持
-        window.addEventListener('devicemotion', mxyz_onMotion);
+        requests.push(DeviceMotionEvent.requestPermission());
       }
+      if (typeof DeviceOrientationEvent !== 'undefined' &&
+          typeof DeviceOrientationEvent.requestPermission === 'function') {
+        requests.push(DeviceOrientationEvent.requestPermission());
+      }
+      if (requests.length === 0) return; // 非 iOS：无需申请，监听已在 boot 中挂好
+
+      Promise.all(requests)
+        .then(states => {
+          // 全部 granted 才算成功
+          const allGranted = states.every(s => s === 'granted');
+          if (allGranted) {
+            window.addEventListener('devicemotion', mxyz_onMotion);
+            window.addEventListener('deviceorientation', mxyz_onOrientation);
+            document.getElementById('mxyz_permBtn').classList.remove('mxyz_show');
+          } else {
+            // 用户拒绝授权：提示并启用降级按钮
+            mxyz_enterFallback('授权被拒绝，请在设置中允许「动作与方向」');
+          }
+        })
+        .catch(() => mxyz_enterFallback('权限申请失败'));
     }
 
     // mxyz_enterFallback：设备不支持时的降级——显示提示 + 手动摇按钮
@@ -355,6 +440,50 @@
       video.classList.add('mxyz_has-src');
       video.play().catch(() => {});
     });
+
+    // ===== B 选项：倾斜视差实现 =====
+
+    // mxyz_gotOrient：是否收到过有效的 deviceorientation 数据
+    let mxyz_gotOrient = false;
+
+    // mxyz_applyParallax：根据倾斜角度移动各视差层（depth 越大位移越大）
+    function mxyz_applyParallax(gamma, beta) {
+      // gamma：左右倾斜（-90~90）；beta：前后倾斜（-180~180）
+      document.getElementById('mxyz_gammaVal').textContent = Math.round(gamma) + '°';
+      document.getElementById('mxyz_betaVal').textContent = Math.round(beta) + '°';
+      // 遍历所有带 data-depth 的层，按深度系数计算位移
+      document.querySelectorAll('.mxyz_plx-layer, .mxyz_plx-sun').forEach(el => {
+        const depth = parseFloat(el.dataset.depth || 1);
+        // 横向：gamma 按 1.2px/度 换算；纵向：beta 在 ±45° 内按 0.6px/度 换算
+        const x = Math.max(-45, Math.min(45, gamma)) * 1.2 * depth;
+        const y = Math.max(-45, Math.min(45, beta - 45)) * 0.6 * depth;
+        el.style.transform = `translate(${x}px, ${y}px)`;
+      });
+    }
+
+    // mxyz_onOrientation：deviceorientation 事件处理——读取倾斜角度并驱动视差
+    function mxyz_onOrientation(e) {
+      // 防御：gamma/beta 可能暂时为 null，必须判空
+      if (e.gamma === null || e.beta === null) return;
+      if (!mxyz_gotOrient) {
+        mxyz_gotOrient = true;
+        // 收到真实传感器数据：撤掉桌面鼠标模拟
+        document.getElementById('mxyz_plxTip').textContent = '✅ 传感器已连接，左右倾斜手机试试';
+        document.removeEventListener('mousemove', mxyz_onMouseMove);
+      }
+      mxyz_applyParallax(e.gamma, e.beta);
+    }
+
+    // mxyz_onMouseMove：桌面降级——用鼠标位置模拟倾斜（DevTools 演示用）
+    function mxyz_onMouseMove(e) {
+      // 把鼠标相对屏幕中心的横/纵位置映射成 -45°~45° 的虚拟倾斜角
+      const gamma = (e.clientX / window.innerWidth - 0.5) * 90;
+      const beta = (e.clientY / window.innerHeight - 0.5) * 60 + 45;
+      mxyz_applyParallax(gamma, beta);
+    }
+
+    // 桌面环境：挂上鼠标模拟；真机收到数据后会自动移除
+    document.addEventListener('mousemove', mxyz_onMouseMove);
 
     // 启动逻辑：
     // 1) 先填诊断条（HTTPS 状态与 API 可用性）
@@ -389,7 +518,9 @@
         // 桌面浏览器：直接降级，不报错不白屏
         mxyz_enterFallback();
       } else {
+        // 非 iOS：直接监听两个传感器事件（摇一摇 + 倾斜视差）
         window.addEventListener('devicemotion', mxyz_onMotion);
+        window.addEventListener('deviceorientation', mxyz_onOrientation);
         // 2 秒支持检测：没数据就降级
         mxyz_supportCheckTimer = setTimeout(() => {
           if (!mxyz_gotEvent) mxyz_enterFallback();
