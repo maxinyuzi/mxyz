@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<!--
+  作者：马昕玉子
+  建立时间：2026-11-18
+  使用大模型：GLM-5.3-Flash
+  功能名称：任务一·事件侦探探针页（自动记录 touchstart/touchmove/touchend/touchcancel/click 的触发顺序与坐标，辅助完成事件观察表）
+  命名说明：按本项目命名规范，所有 id/class/JS 变量统一以 mxyz_ 开头（任务卡中的 wy_ 为示例前缀）
+-->
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>任务一 · 事件侦探探针</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: "Microsoft YaHei", sans-serif;
+      background: #f0f2f5;
+      padding: 16px;
+      color: #333;
+    }
+    .mxyz_title { font-size: 22px; text-align: center; margin-bottom: 6px; }
+    .mxyz_sub { text-align: center; color: #888; font-size: 13px; margin-bottom: 14px; }
+
+    /* 探针区：所有触摸操作在这里进行；touch-action:none 阻止浏览器默认手势干扰 */
+    .mxyz_probe-zone {
+      height: 240px;
+      background: linear-gradient(135deg, #4f6ef7, #6a5cf0);
+      border-radius: 14px;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+      font-size: 16px;
+      text-align: center;
+      padding: 12px;
+    }
+    .mxyz_probe-zone:active { filter: brightness(1.08); }
+
+    /* 统计条：move 次数与累计距离实时更新 */
+    .mxyz_stats {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin: 12px 0;
+    }
+    .mxyz_stat-chip {
+      background: #fff;
+      border-radius: 10px;
+      padding: 8px 14px;
+      font-size: 13px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+    .mxyz_stat-chip b { color: #4f6ef7; }
+
+    /* 事件日志表 */
+    .mxyz_log-box {
+      background: #fff;
+      border-radius: 12px;
+      padding: 12px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+    .mxyz_log-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .mxyz_log-head h2 { font-size: 15px; }
+    .mxyz_clear-btn {
+      border: none;
+      background: #4f6ef7;
+      color: #fff;
+      border-radius: 14px;
+      padding: 5px 14px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .mxyz_log-list {
+      font-family: Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.9;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    .mxyz_log-list .mxyz_row span { display: inline-block; margin-right: 10px; }
+    .mxyz_ev { color: #fff; border-radius: 4px; padding: 0 6px; font-size: 11px; }
+    .mxyz_ev-touchstart { background: #2e9e5b; }
+    .mxyz_ev-touchmove  { background: #4f6ef7; }
+    .mxyz_ev-touchend   { background: #e08a2e; }
+    .mxyz_ev-touchcancel{ background: #d64545; }
+    .mxyz_ev-click      { background: #8a4fd6; }
+    .mxyz_empty { color: #aaa; text-align: center; padding: 16px 0; }
+
+    /* 三个验收问题 */
+    .mxyz_qa {
+      background: #fff;
+      border-radius: 12px;
+      padding: 14px;
+      margin-top: 14px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      font-size: 14px;
+      line-height: 1.9;
+    }
+    .mxyz_qa h2 { font-size: 15px; margin-bottom: 8px; }
+    .mxyz_qa li { margin-left: 18px; margin-bottom: 6px; }
+
+    .mxyz_back {
+      display: block;
+      text-align: center;
+      margin: 18px auto 6px;
+      color: #4f6ef7;
+      text-decoration: none;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <h1 class="mxyz_title">事件侦探 · 触摸探针区</h1>
+  <p class="mxyz_sub">在蓝色区域依次做 5 种操作：单击 / 向上拖动 / 向左快速滑 / 双指长按 / 长按待拾起，下方自动记录事件顺序</p>
+
+  <!-- 探针区：事件监听目标 -->
+  <div class="mxyz_probe-zone" id="mxyz_probeZone">
+    <div>🖐 请在此区域内操作</div>
+    <div style="font-size:13px;opacity:.85">单击 · 拖动 · 快速滑 · 双指长按</div>
+    <div style="font-size:12px;opacity:.7" id="mxyz_fingerTip">当前触点数：0</div>
+  </div>
+
+  <!-- 实时统计：move 次数 / 累计距离，用于回答「move 次数与距离的关系」 -->
+  <div class="mxyz_stats">
+    <div class="mxyz_stat-chip">touchmove 次数 <b id="mxyz_moveCount">0</b></div>
+    <div class="mxyz_stat-chip">累计移动距离 <b id="mxyz_moveDist">0</b> px</div>
+    <div class="mxyz_stat-chip">事件总数 <b id="mxyz_total">0</b></div>
+  </div>
+
+  <!-- 事件记录表：自动写入 -->
+  <div class="mxyz_log-box">
+    <div class="mxyz_log-head">
+      <h2>事件触发顺序记录表（自动生成）</h2>
+      <button class="mxyz_clear-btn" id="mxyz_clearBtn">清空记录</button>
+    </div>
+    <div class="mxyz_log-list" id="mxyz_logList">
+      <p class="mxyz_empty">暂无记录，请在上方探针区操作</p>
+    </div>
+  </div>
+
+  <!-- 验收问题答案 -->
+  <div class="mxyz_qa">
+    <h2>验收三问（结合上方实测数据回答）</h2>
+    <ol>
+      <li><b>一次拖动里 touchmove 触发多少次？和距离什么关系？</b><br>
+        答：每移动几像素就触发一次，次数与距离大致成正比——拖得越远、越慢，触发的 touchmove 越多（见上方实时统计）。浏览器的采样频率决定了它不是每像素一次，而是每次输入采样（约每 8~16ms）一次。</li>
+      <li><b>click 出现在 touchend 之前还是之后？</b><br>
+        答：之后。顺序是 touchstart → (touchmove…) → touchend → click。浏览器在手指抬起后确认是轻点，才补发一个 click。</li>
+      <li><b>把 touchend 换成 touchcancel 会发生什么？</b><br>
+        答：touchcancel 在触摸被打断时触发（来电、弹窗、手势被浏览器接管）。普通单击/拖动不会触发它，所以业务里只监听 touchend 会漏掉「被打断」的情况——正确做法是两个都监听，touchcancel 时按「未完成」处理并复位状态。</li>
+    </ol>
+  </div>
+
+  <a class="mxyz_back" href="index.html">返回首页</a>
+
+  <script>
+    // mxyz_moveTotal：本次按下期间 touchmove 累计距离；mxyz_counting：是否正在统计一轮操作
+    let mxyz_moveTotal = 0;
+    let mxyz_counting = false;
+    let mxyz_lastX = 0, mxyz_lastY = 0;
+    let mxyz_moveTimes = 0, mxyz_eventTimes = 0;
+
+    // mxyz_logEvent：向记录表写入一行事件日志（事件名 + 坐标 + 触点数 + 距上次的时间差）
+    function mxyz_logEvent(name, x, y, touchNum) {
+      const list = document.getElementById('mxyz_logList');
+      if (mxyz_eventTimes === 0) list.innerHTML = '';
+      const t = new Date();
+      const ts = t.toLocaleTimeString('zh-CN', { hour12: false }) + '.' + String(t.getMilliseconds()).padStart(3, '0');
+      const row = document.createElement('div');
+      row.className = 'mxyz_row';
+      // 坐标可能不存在（如 click 用 changedTouches 也行，这里统一显示）
+      const pos = (x === undefined) ? '无坐标' : `(${Math.round(x)}, ${Math.round(y)})`;
+      row.innerHTML = `<span class="mxyz_ev mxyz_ev-${name}">${name}</span>` +
+        `<span>#${++mxyz_eventTimes}</span><span>${ts}</span><span>${pos}</span><span>触点:${touchNum}</span>`;
+      list.appendChild(row);
+      list.scrollTop = list.scrollHeight;
+
+      // 同步统计数字
+      document.getElementById('mxyz_total').textContent = mxyz_eventTimes;
+      document.getElementById('mxyz_moveCount').textContent = mxyz_moveTimes;
+      document.getElementById('mxyz_moveDist').textContent = Math.round(mxyz_moveTotal);
+    }
+
+    // 探针区引用
+    const zone = document.getElementById('mxyz_probeZone');
+
+    // touchstart：记录起点，开始一轮统计
+    zone.addEventListener('touchstart', e => {
+      mxyz_counting = true;
+      mxyz_moveTotal = 0;
+      mxyz_moveTimes = 0;
+      mxyz_lastX = e.touches[0].clientX;
+      mxyz_lastY = e.touches[0].clientY;
+      document.getElementById('mxyz_fingerTip').textContent = '当前触点数：' + e.touches.length;
+      mxyz_logEvent('touchstart', mxyz_lastX, mxyz_lastY, e.touches.length);
+    }, { passive: true });
+
+    // touchmove：累计触点移动距离，逐条记录
+    zone.addEventListener('touchmove', e => {
+      if (!mxyz_counting) return;
+      const t = e.touches[0];
+      // 两点间直线距离累加，得到手指实际路径长度（轨迹草图的量化依据）
+      mxyz_moveTotal += Math.hypot(t.clientX - mxyz_lastX, t.clientY - mxyz_lastY);
+      mxyz_lastX = t.clientX;
+      mxyz_lastY = t.clientY;
+      mxyz_moveTimes++;
+      document.getElementById('mxyz_fingerTip').textContent = '当前触点数：' + e.touches.length;
+      mxyz_logEvent('touchmove', t.clientX, t.clientY, e.touches.length);
+    }, { passive: true });
+
+    // touchend：一轮结束；changedTouches 表示「离开屏幕的那些触点」
+    zone.addEventListener('touchend', e => {
+      mxyz_counting = false;
+      const t = e.changedTouches[0];
+      mxyz_logEvent('touchend', t.clientX, t.clientY, e.touches.length);
+    });
+
+    // touchcancel：触摸被打断（来电/系统手势）时触发，用于演示与 touchend 的区别
+    zone.addEventListener('touchcancel', e => {
+      mxyz_counting = false;
+      mxyz_logEvent('touchcancel', undefined, undefined, e.touches.length);
+    });
+
+    // click：验证它总是发生在 touchend 之后
+    zone.addEventListener('click', e => {
+      mxyz_logEvent('click', e.clientX, e.clientY, 0);
+    });
+
+    // 清空按钮：重置记录与统计
+    document.getElementById('mxyz_clearBtn').addEventListener('click', () => {
+      document.getElementById('mxyz_logList').innerHTML = '<p class="mxyz_empty">暂无记录，请在上方探针区操作</p>';
+      mxyz_eventTimes = 0; mxyz_moveTimes = 0; mxyz_moveTotal = 0;
+      document.getElementById('mxyz_total').textContent = 0;
+      document.getElementById('mxyz_moveCount').textContent = 0;
+      document.getElementById('mxyz_moveDist').textContent = 0;
+    });
+  </script>
+</body>
+</html>

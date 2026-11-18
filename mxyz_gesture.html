@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<!--
+  作者：马昕玉子
+  建立时间：2026-11-18
+  使用大模型：GLM-5.3-Flash
+  功能名称：任务二·手势卡片（中华美食卡片，左右滑动切换 4 道菜，阈值 40px + 边界提示 + 0.3s 过渡 + 300ms 冷却）
+  命名说明：按本项目命名规范，所有 id/class/JS 变量统一以 mxyz_ 开头（任务卡中的 wy_ 为示例前缀）
+-->
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>任务二 · 手势卡片：中华美食</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: "Microsoft YaHei", sans-serif;
+      background: #fff7ef;
+      min-height: 100vh;
+      padding: 20px 16px;
+      color: #4a3222;
+    }
+    .mxyz_title { text-align: center; font-size: 24px; margin-bottom: 4px; }
+    .mxyz_sub { text-align: center; color: #a9825f; font-size: 13px; margin-bottom: 18px; }
+
+    /* 进度指示：第 X/4 张 */
+    .mxyz_indicator {
+      text-align: center;
+      font-size: 15px;
+      color: #8a6d3b;
+      margin-bottom: 12px;
+      letter-spacing: 2px;
+    }
+    .mxyz_indicator b { color: #c96f2f; font-size: 18px; }
+
+    /* 卡片视口：只显示当前一张；touch-action:pan-y 保证纵向还能滚动页面 */
+    .mxyz_card-viewport {
+      max-width: 420px;
+      margin: 0 auto;
+      overflow: hidden;
+      border-radius: 16px;
+      touch-action: pan-y;
+      box-shadow: 0 6px 18px rgba(120, 80, 40, 0.2);
+    }
+    /* 轨道：4 张卡片横向排列，通过 translateX 切换 */
+    .mxyz_track {
+      display: flex;
+      transition: transform 0.3s ease;
+    }
+
+    /* 单张美食卡片：emoji 头图 + 菜名 + 简介 + 推荐者（不依赖外链图片，本地可靠显示） */
+    .mxyz_dish-card {
+      min-width: 100%;
+      background: #fff;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .mxyz_dish-banner {
+      height: 160px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 72px;
+    }
+    .mxyz_dish-info { padding: 16px 18px 22px; }
+    .mxyz_dish-name {
+      font-size: 22px;
+      color: #7a4218;
+      margin-bottom: 8px;
+      border-left: 4px solid #c96f2f;
+      padding-left: 10px;
+    }
+    .mxyz_dish-desc {
+      font-size: 14px;
+      color: #7a6a56;
+      line-height: 1.8;
+      margin-bottom: 12px;
+    }
+    .mxyz_dish-ref {
+      font-size: 12px;
+      color: #c96f2f;
+      background: #fff3e6;
+      display: inline-block;
+      border-radius: 12px;
+      padding: 3px 12px;
+    }
+
+    /* 边界提示气泡 */
+    .mxyz_tip-pop {
+      position: fixed;
+      left: 50%;
+      bottom: 90px;
+      transform: translateX(-50%) translateY(20px);
+      background: rgba(60, 40, 20, 0.85);
+      color: #fff;
+      font-size: 14px;
+      padding: 10px 22px;
+      border-radius: 20px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s, transform 0.3s;
+      z-index: 99;
+    }
+    .mxyz_tip-pop.mxyz_show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* 圆点导航 */
+    .mxyz_dots {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 16px;
+    }
+    .mxyz_dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #d9c3a5;
+      transition: background 0.3s, transform 0.3s;
+    }
+    .mxyz_dot.mxyz_active { background: #c96f2f; transform: scale(1.3); }
+
+    .mxyz_back {
+      display: block;
+      text-align: center;
+      margin: 24px auto 6px;
+      color: #a9825f;
+      text-decoration: none;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <h1 class="mxyz_title">中华美食卡片</h1>
+  <p class="mxyz_sub">左右滑动切换菜品 · 阈值 40px · 0.3s 过渡 · 300ms 冷却</p>
+
+  <!-- 进度指示 -->
+  <div class="mxyz_indicator">第 <b id="mxyz_cur">1</b> / 4 张</div>
+
+  <!-- 卡片视口与轨道 -->
+  <div class="mxyz_card-viewport" id="mxyz_viewport">
+    <div class="mxyz_track" id="mxyz_track"><!-- 卡片由 JS 生成 --></div>
+  </div>
+
+  <!-- 圆点导航 -->
+  <div class="mxyz_dots" id="mxyz_dots"></div>
+
+  <!-- 边界提示气泡 -->
+  <div class="mxyz_tip-pop" id="mxyz_tipPop"></div>
+
+  <a class="mxyz_back" href="index.html">返回首页</a>
+
+  <script>
+    // mxyz_dishes：4 道菜的数据（菜名、简介、推荐者、头图渐变色与 emoji）
+    const mxyz_dishes = [
+      {
+        name: '北京烤鸭',
+        desc: '皮脆肉嫩，肥而不腻。果木炭火烤制，配薄饼、葱丝与甜面酱同食，风味绝佳。',
+        ref: '推荐者：马昕玉子',
+        emoji: '🦆',
+        bg: 'linear-gradient(135deg, #f7b267, #e07a5f)'
+      },
+      {
+        name: '四川火锅',
+        desc: '麻辣鲜香，红油翻滚。毛肚、黄喉七上八下，一涮一烫之间尽是巴蜀江湖气。',
+        ref: '推荐者：小玉',
+        emoji: '🍲',
+        bg: 'linear-gradient(135deg, #e76f51, #9d2b2b)'
+      },
+      {
+        name: '广东肠粉',
+        desc: '米浆蒸就，薄如蝉翼。裹住鲜虾或牛肉，淋上豉油，是广式早茶的灵魂点心。',
+        ref: '推荐者：玉子同学',
+        emoji: '🍤',
+        bg: 'linear-gradient(135deg, #95d5b2, #52b788)'
+      },
+      {
+        name: '西北羊肉泡馍',
+        desc: '馍块筋道，汤浓味醇。掰馍入汤慢慢煮透，配糖蒜与辣子，一碗下肚浑身暖。',
+        ref: '推荐者：昕玉',
+        emoji: '🍜',
+        bg: 'linear-gradient(135deg, #dbba58, #b08968)'
+      }
+    ];
+
+    // mxyz_index：当前卡片索引；mxyz_lock：冷却锁，防止快速连滑一次跳两张
+    let mxyz_index = 0;
+    let mxyz_lock = false;
+    const mxyz_THRESHOLD = 40;    // 滑动判定阈值（px）
+    const mxyz_COOLDOWN = 300;    // 冷却时间（ms）
+
+    // mxyz_renderCards：根据数据生成 4 张卡片和圆点导航
+    function mxyz_renderCards() {
+      const track = document.getElementById('mxyz_track');
+      const dots = document.getElementById('mxyz_dots');
+      track.innerHTML = '';
+      dots.innerHTML = '';
+      mxyz_dishes.forEach((dish, i) => {
+        const card = document.createElement('div');
+        card.className = 'mxyz_dish-card';
+        card.innerHTML = `
+          <div class="mxyz_dish-banner" style="background:${dish.bg}">${dish.emoji}</div>
+          <div class="mxyz_dish-info">
+            <h2 class="mxyz_dish-name">${dish.name}</h2>
+            <p class="mxyz_dish-desc">${dish.desc}</p>
+            <span class="mxyz_dish-ref">${dish.ref}</span>
+          </div>
+        `;
+        track.appendChild(card);
+
+        const dot = document.createElement('span');
+        dot.className = 'mxyz_dot';
+        dots.appendChild(dot);
+      });
+      mxyz_syncUI();
+    }
+
+    // mxyz_syncUI：同步轨道位移、进度指示与圆点状态
+    function mxyz_syncUI() {
+      document.getElementById('mxyz_track').style.transform = `translateX(-${mxyz_index * 100}%)`;
+      document.getElementById('mxyz_cur').textContent = mxyz_index + 1;
+      document.querySelectorAll('.mxyz_dot').forEach((d, i) => {
+        d.classList.toggle('mxyz_active', i === mxyz_index);
+      });
+    }
+
+    // mxyz_showTip：在屏幕下方弹出边界提示文字，1 秒后自动消失
+    function mxyz_showTip(text) {
+      const tip = document.getElementById('mxyz_tipPop');
+      tip.textContent = text;
+      tip.classList.add('mxyz_show');
+      setTimeout(() => tip.classList.remove('mxyz_show'), 1000);
+    }
+
+    // mxyz_go：切换到目标索引（带边界检查与冷却锁）
+    function mxyz_go(target) {
+      // 冷却中直接忽略，防止快速连滑跳张
+      if (mxyz_lock) return;
+      // 越界检查：滑到头给文字提示，不切换
+      if (target < 0) {
+        mxyz_showTip('已经是第一张啦～');
+        return;
+      }
+      if (target > mxyz_dishes.length - 1) {
+        mxyz_showTip('已经是最后一张啦～');
+        return;
+      }
+      mxyz_index = target;
+      mxyz_syncUI();
+      // 加冷却锁，300ms 后释放
+      mxyz_lock = true;
+      setTimeout(() => { mxyz_lock = false; }, mxyz_COOLDOWN);
+    }
+
+    // 触摸手势：touchstart 记录起点，touchend 用 changedTouches[0] 算横向位移
+    const viewport = document.getElementById('mxyz_viewport');
+    let mxyz_startX = 0;
+
+    // touchstart：记录手指按下时的横坐标
+    viewport.addEventListener('touchstart', e => {
+      mxyz_startX = e.changedTouches[0].clientX;
+    }, { passive: true });
+
+    // touchend：计算横向位移，超过阈值 40px 才判定为滑动切换
+    viewport.addEventListener('touchend', e => {
+      const endX = e.changedTouches[0].clientX;
+      const deltaX = endX - mxyz_startX;
+      // 手指左移（deltaX 为负）→ 下一张；右移 → 上一张
+      if (deltaX < -mxyz_THRESHOLD) {
+        mxyz_go(mxyz_index + 1);
+      } else if (deltaX > mxyz_THRESHOLD) {
+        mxyz_go(mxyz_index - 1);
+      }
+    });
+
+    // 桌面端键盘方向键也能切换，方便 DevTools 演示
+    document.addEventListener('keydown', e => {
+      if (e.key === 'ArrowLeft') mxyz_go(mxyz_index - 1);
+      if (e.key === 'ArrowRight') mxyz_go(mxyz_index + 1);
+    });
+
+    // 页面加载：渲染卡片
+    mxyz_renderCards();
+  </script>
+</body>
+</html>

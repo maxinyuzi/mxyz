@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<!--
+  作者：马昕玉子
+  建立时间：2026-11-18
+  使用大模型：GLM-5.3-Flash
+  功能名称：任务三·图片查看器（双指缩放 1x~4x 以中点为基点、双击 1x/2x 切换、单指拖动带边界阻尼、加分：双指旋转 + 缩放比例显示，附运行录屏插入区）
+  命名说明：按本项目命名规范，所有 id/class/JS 变量统一以 mxyz_ 开头（任务卡中的 wy_ 为示例前缀）
+-->
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>任务三 · 图片查看器：双指缩放</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: "Microsoft YaHei", sans-serif;
+      background: #17181d;
+      min-height: 100vh;
+      padding: 16px;
+      color: #eee;
+    }
+    .mxyz_title { text-align: center; font-size: 22px; margin-bottom: 4px; }
+    .mxyz_sub { text-align: center; color: #8b8fa3; font-size: 13px; margin-bottom: 12px; }
+
+    /* 状态栏：当前缩放比例 + 旋转角度（加分项显示器） */
+    .mxyz_hud {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .mxyz_hud span {
+      background: #26282f;
+      border-radius: 12px;
+      padding: 5px 14px;
+      font-size: 13px;
+      color: #a5f3d0;
+      font-family: Consolas, monospace;
+    }
+
+    /* 查看器容器：overflow hidden + touch-action none + 禁止选中 */
+    .mxyz_viewer {
+      position: relative;
+      max-width: 520px;
+      height: 380px;
+      margin: 0 auto;
+      overflow: hidden;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+      border-radius: 14px;
+      background: #000;
+    }
+    /* 图片：用 transform 完成缩放/位移/旋转；动画类控制过渡 */
+    .mxyz_pic {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 100%;
+      object-fit: contain;
+      pointer-events: none;
+      will-change: transform;
+    }
+    .mxyz_pic.mxyz_animate { transition: transform 0.25s ease; }
+
+    /* 顶部提示 */
+    .mxyz_help {
+      text-align: center;
+      color: #8b8fa3;
+      font-size: 12px;
+      margin-top: 10px;
+      line-height: 1.8;
+    }
+
+    /* 运行录屏插入区 */
+    .mxyz_video-box {
+      max-width: 520px;
+      margin: 20px auto 0;
+      background: #26282f;
+      border-radius: 14px;
+      padding: 14px;
+    }
+    .mxyz_video-box h2 { font-size: 15px; margin-bottom: 8px; color: #a5f3d0; }
+    .mxyz_video-box video {
+      width: 100%;
+      border-radius: 8px;
+      background: #000;
+      display: none;
+    }
+    .mxyz_video-box video.mxyz_has-src { display: block; }
+    .mxyz_video-pick {
+      display: block;
+      width: 100%;
+      margin-top: 10px;
+      padding: 10px;
+      border: 1px dashed #5a5f75;
+      border-radius: 8px;
+      color: #8b8fa3;
+      font-size: 13px;
+      cursor: pointer;
+      text-align: center;
+    }
+    .mxyz_video-pick:hover { border-color: #a5f3d0; color: #a5f3d0; }
+
+    /* 答辩说明 */
+    .mxyz_defense {
+      max-width: 520px;
+      margin: 16px auto 0;
+      background: #26282f;
+      border-radius: 14px;
+      padding: 14px;
+      font-size: 13px;
+      line-height: 1.9;
+      color: #c9cdd8;
+    }
+    .mxyz_defense h2 { font-size: 15px; color: #a5f3d0; margin-bottom: 6px; }
+
+    .mxyz_back {
+      display: block;
+      text-align: center;
+      margin: 20px auto 6px;
+      color: #8b8fa3;
+      text-decoration: none;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <h1 class="mxyz_title">图片查看器 · 双指缩放</h1>
+  <p class="mxyz_sub">双指捏合缩放（1x~4x）· 双击 1x/2x 切换 · 放大后单指拖动 · 缩回 1x 自动居中</p>
+
+  <!-- 状态显示器（加分项） -->
+  <div class="mxyz_hud">
+    <span>缩放 <b id="mxyz_scaleVal">1.00x</b></span>
+    <span>旋转 <b id="mxyz_rotVal">0°</b></span>
+  </div>
+
+  <!-- 查看器容器 -->
+  <div class="mxyz_viewer" id="mxyz_viewer">
+    <img class="mxyz_pic" id="mxyz_pic" src="swiper-imgs/tiangong_1.jpg" alt="天宫空间站">
+  </div>
+
+  <p class="mxyz_help">请用手机（或 DevTools 设备模式）打开<br>双指捏合缩放 · 双击放大/还原 · 单指拖动查看细节</p>
+
+  <!-- 运行录屏插入区：选择本地视频即可播放 -->
+  <div class="mxyz_video-box">
+    <h2>运行录屏（提交作业用）</h2>
+    <video id="mxyz_demoVideo" controls playsinline></video>
+    <label class="mxyz_video-pick">
+      点击选择本地录屏视频插入这里
+      <input type="file" id="mxyz_videoInput" accept="video/*" style="display:none">
+    </label>
+  </div>
+
+  <!-- 答辩要点：如何保证「缩放不跳」 -->
+  <div class="mxyz_defense">
+    <h2>答辩：我是如何保证「缩放不跳」的</h2>
+    缩放的基点是「两指中点」。touchstart 时记下初始双指距离、初始中点、初始 scale/tx/ty；
+    touchmove 时算出比例 newScale = 初始scale × 当前距离/初始距离，
+    再按 <b>newTx = midX − (midX − initTx) × (newScale / initScale)</b> 反推位移——
+    这样中点在缩放前后始终指向图片上同一个像素点，图就不会「跳走」。
+    松手或越界时把状态钳制回允许范围（边界外橡皮筋 0.3 阻尼 + 回弹动画）。
+    屏幕旋转时只重新钳制边界，不重置 scale/tx/ty，状态不丢失。
+  </div>
+
+  <a class="mxyz_back" href="index.html">返回首页</a>
+
+  <script>
+    // ============ 状态变量 ============
+    let mxyz_scale = 1;          // 当前缩放倍数（1~4）
+    let mxyz_tx = 0, mxyz_ty = 0; // 图片平移量（相对居中位置）
+    let mxyz_rot = 0;            // 旋转角度（加分项）
+
+    // 双指手势的初始快照：距离/角度/中点/当时的变换状态
+    let mxyz_pinch = null;
+    // 单指拖动的初始快照
+    let mxyz_drag = null;
+    // 双击检测：上一次抬起的时间与位置
+    let mxyz_lastTap = { time: 0, x: 0, y: 0 };
+
+    // DOM 引用
+    const mxyz_viewer = document.getElementById('mxyz_viewer');
+    const mxyz_pic = document.getElementById('mxyz_pic');
+
+    // ============ 工具函数 ============
+
+    // mxyz_applyTransform：把 scale/tx/ty/rot 应用到图片上（关闭过渡动画，跟手）
+    function mxyz_applyTransform() {
+      mxyz_pic.classList.remove('mxyz_animate');
+      mxyz_pic.style.transform =
+        `translate(-50%, -50%) translate(${mxyz_tx}px, ${mxyz_ty}px) scale(${mxyz_scale}) rotate(${mxyz_rot}deg)`;
+      document.getElementById('mxyz_scaleVal').textContent = mxyz_scale.toFixed(2) + 'x';
+      document.getElementById('mxyz_rotVal').textContent = Math.round(mxyz_rot) + '°';
+    }
+
+    // mxyz_applyAnimate：带 0.25s 过渡地应用变换（双击切换、边界回弹用）
+    function mxyz_applyAnimate() {
+      mxyz_pic.classList.add('mxyz_animate');
+      mxyz_pic.style.transform =
+        `translate(-50%, -50%) translate(${mxyz_tx}px, ${mxyz_ty}px) scale(${mxyz_scale}) rotate(${mxyz_rot}deg)`;
+      document.getElementById('mxyz_scaleVal').textContent = mxyz_scale.toFixed(2) + 'x';
+    }
+
+    // mxyz_limit：位移钳制——放多大就能移多远，边界外不允许（1x 时恰好锁死在 0,0）
+    function mxyz_limit(v, half) {
+      const bound = (mxyz_scale - 1) * half;
+      return Math.max(-bound, Math.min(bound, v));
+    }
+
+    // mxyz_midOf：取前两个触点的中点
+    function mxyz_midOf(t1, t2) {
+      return { x: (t1.clientX + t2.clientX) / 2, y: (t1.clientY + t2.clientY) / 2 };
+    }
+
+    // mxyz_distOf：取前两个触点的距离
+    function mxyz_distOf(t1, t2) {
+      return Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+    }
+
+    // mxyz_angleOf：取前两个触点与 X 轴的夹角（弧度），用于双指旋转
+    function mxyz_angleOf(t1, t2) {
+      return Math.atan2(t2.clientY - t1.clientY, t2.clientX - t1.clientX);
+    }
+
+    // mxyz_clampAll：把当前位移钳制进边界（屏幕旋转 / 松手回弹时调用）
+    function mxyz_clampAll() {
+      mxyz_tx = mxyz_limit(mxyz_tx, mxyz_viewer.clientWidth / 2);
+      mxyz_ty = mxyz_limit(mxyz_ty, mxyz_viewer.clientHeight / 2);
+      // 缩回 1x 时强制归零居中
+      if (mxyz_scale === 1) { mxyz_tx = 0; mxyz_ty = 0; mxyz_rot = 0; }
+    }
+
+    // ============ 触摸事件 ============
+
+    // touchstart：区分「双指」与「单指」两种模式并记录初始快照
+    mxyz_viewer.addEventListener('touchstart', e => {
+      e.preventDefault();
+      if (e.touches.length === 2) {
+        const [t1, t2] = e.touches;
+        const mid = mxyz_midOf(t1, t2);
+        // 记录双指初始快照：缩放以中点为基点的关键数据都在这里
+        mxyz_pinch = {
+          dist: mxyz_distOf(t1, t2),
+          angle: mxyz_angleOf(t1, t2),
+          mid: mid,
+          scale: mxyz_scale,
+          tx: mxyz_tx,
+          ty: mxyz_ty,
+          rot: mxyz_rot
+        };
+        mxyz_drag = null;
+      } else if (e.touches.length === 1) {
+        const t = e.touches[0];
+        mxyz_pinch = null;
+        mxyz_drag = { x: t.clientX, y: t.clientY, tx: mxyz_tx, ty: mxyz_ty };
+      }
+    });
+
+    // touchmove：双指→缩放+旋转；单指→拖动（带边界阻尼）
+    mxyz_viewer.addEventListener('touchmove', e => {
+      e.preventDefault();
+      if (e.touches.length === 2 && mxyz_pinch) {
+        const [t1, t2] = e.touches;
+        // 距离比例 → 新缩放，钳制在 1~4 倍
+        const ratio = mxyz_distOf(t1, t2) / mxyz_pinch.dist;
+        const newScale = Math.max(1, Math.min(4, mxyz_pinch.scale * ratio));
+        const mid = mxyz_midOf(t1, t2);
+
+        // 核心：以中点为基点反推位移，保证中点指着的像素不动 →「缩放不跳」
+        const k = newScale / mxyz_pinch.scale;
+        mxyz_scale = newScale;
+        mxyz_tx = mid.x - (mid.x - mxyz_pinch.tx) * k;
+        mxyz_ty = mid.y - (mid.y - mxyz_pinch.ty) * k;
+
+        // 加分项：双指旋转，角度差直接累加（Math.atan2 算出的弧度转成角度）
+        const dAngle = (mxyz_angleOf(t1, t2) - mxyz_pinch.angle) * 180 / Math.PI;
+        mxyz_rot = mxyz_pinch.rot + dAngle;
+
+        // 越界橡皮筋：超出部分只按 30% 跟随，视觉上有阻尼感
+        const bx = (mxyz_scale - 1) * mxyz_viewer.clientWidth / 2;
+        const by = (mxyz_scale - 1) * mxyz_viewer.clientHeight / 2;
+        if (Math.abs(mxyz_tx) > bx) mxyz_tx = Math.sign(mxyz_tx) * (bx + (Math.abs(mxyz_tx) - bx) * 0.3);
+        if (Math.abs(mxyz_ty) > by) mxyz_ty = Math.sign(mxyz_ty) * (by + (Math.abs(mxyz_ty) - by) * 0.3);
+        mxyz_applyTransform();
+      } else if (e.touches.length === 1 && mxyz_drag) {
+        const t = e.touches[0];
+        // 单指拖动：1x 时不允许拖（limit 会把位移锁死在 0）
+        mxyz_tx = mxyz_drag.tx + (t.clientX - mxyz_drag.x);
+        mxyz_ty = mxyz_drag.ty + (t.clientY - mxyz_drag.y);
+        // 边界阻尼：越界部分 30% 跟随
+        const bx = (mxyz_scale - 1) * mxyz_viewer.clientWidth / 2;
+        const by = (mxyz_scale - 1) * mxyz_viewer.clientHeight / 2;
+        if (Math.abs(mxyz_tx) > bx) mxyz_tx = Math.sign(mxyz_tx) * (bx + (Math.abs(mxyz_tx) - bx) * 0.3);
+        if (Math.abs(mxyz_ty) > by) mxyz_ty = Math.sign(mxyz_ty) * (by + (Math.abs(mxyz_ty) - by) * 0.3);
+        mxyz_applyTransform();
+      }
+    }, { passive: false });
+
+    // touchend：松手处理——钳制回弹 + 双击检测
+    mxyz_viewer.addEventListener('touchend', e => {
+      // 双指结束：钳制进边界并回弹
+      if (mxyz_pinch) {
+        mxyz_clampAll();
+        mxyz_applyAnimate();
+        mxyz_pinch = null;
+        return;
+      }
+      // 单指结束：先把位置钳制回边界内
+      if (mxyz_drag) {
+        mxyz_clampAll();
+        mxyz_applyAnimate();
+        mxyz_drag = null;
+      }
+      // 双击检测：300ms 内两次轻点、且位移很小 → 在 1x / 2x 间切换
+      const t = e.changedTouches[0];
+      const now = Date.now();
+      const moved = Math.hypot(t.clientX - mxyz_lastTap.x, t.clientY - mxyz_lastTap.y);
+      if (now - mxyz_lastTap.time < 300 && moved < 20) {
+        if (mxyz_scale > 1) {
+          mxyz_scale = 1; mxyz_tx = 0; mxyz_ty = 0; mxyz_rot = 0; // 还原并自动居中
+        } else {
+          mxyz_scale = 2;
+        }
+        mxyz_applyAnimate();
+        mxyz_lastTap = { time: 0, x: 0, y: 0 };
+      } else {
+        mxyz_lastTap = { time: now, x: t.clientX, y: t.clientY };
+      }
+    });
+
+    // 桌面端 dblclick 也能双击放大，方便 DevTools 演示
+    mxyz_viewer.addEventListener('dblclick', () => {
+      if (mxyz_scale > 1) { mxyz_scale = 1; mxyz_tx = 0; mxyz_ty = 0; mxyz_rot = 0; }
+      else { mxyz_scale = 2; }
+      mxyz_applyAnimate();
+    });
+
+    // ============ 屏幕旋转：状态不丢失 ============
+
+    // orientationchange / resize：只重新钳制边界，保留 scale/tx/ty/rot 状态
+    function mxyz_onScreenChange() {
+      mxyz_clampAll();
+      mxyz_applyAnimate();
+    }
+    window.addEventListener('orientationchange', () => setTimeout(mxyz_onScreenChange, 200));
+    window.addEventListener('resize', mxyz_onScreenChange);
+
+    // ============ 运行录屏插入 ============
+
+    // 视频选择：读取本地视频文件，生成临时地址给 video 播放
+    document.getElementById('mxyz_videoInput').addEventListener('change', function () {
+      const file = this.files[0];
+      if (!file) return;
+      const video = document.getElementById('mxyz_demoVideo');
+      video.src = URL.createObjectURL(file);
+      video.classList.add('mxyz_has-src');
+      video.play().catch(() => {});
+    });
+
+    // 初始渲染
+    mxyz_applyTransform();
+  </script>
+</body>
+</html>

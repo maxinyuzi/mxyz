@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<!--
+  作者：马昕玉子
+  建立时间：2026-11-18
+  使用大模型：GLM-5.3-Flash
+  功能名称：任务四·摇一摇今日菜谱（devicemotion + 加速度阈值 18 + 1.5s 冷却 + iOS 权限按钮 + 不支持降级方案，附运行录屏插入区）
+  命名说明：按本项目命名规范，所有 id/class/JS 变量统一以 mxyz_ 开头（任务卡中的 wy_ 为示例前缀）
+-->
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>任务四 · 摇一摇今日菜谱</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: "Microsoft YaHei", sans-serif;
+      background: linear-gradient(160deg, #2b2118, #4a3222);
+      min-height: 100vh;
+      padding: 20px 16px;
+      color: #f5e9d8;
+    }
+    .mxyz_title { text-align: center; font-size: 24px; margin-bottom: 4px; }
+    .mxyz_sub { text-align: center; color: #c9a97e; font-size: 13px; margin-bottom: 20px; }
+
+    /* 摇一摇主卡片 */
+    .mxyz_shake-card {
+      max-width: 420px;
+      margin: 0 auto;
+      background: #fff7ef;
+      color: #4a3222;
+      border-radius: 18px;
+      padding: 28px 20px;
+      text-align: center;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    }
+    .mxyz_shake-ico { font-size: 52px; display: inline-block; }
+    /* 摇动时手机图标左右晃动 */
+    .mxyz_shake-ico.mxyz_shaking { animation: mxyz_shakeAnim 0.5s ease; }
+    @keyframes mxyz_shakeAnim {
+      0%, 100% { transform: rotate(0); }
+      20% { transform: rotate(-18deg); }
+      40% { transform: rotate(16deg); }
+      60% { transform: rotate(-12deg); }
+      80% { transform: rotate(8deg); }
+    }
+    .mxyz_hint { font-size: 14px; color: #a9825f; margin: 12px 0 4px; }
+
+    /* 结果区：抽到的菜谱，弹出动画出现 */
+    .mxyz_result {
+      margin-top: 16px;
+      font-size: 24px;
+      font-weight: bold;
+      color: #c96f2f;
+      min-height: 40px;
+      opacity: 0;
+      transform: scale(0.6);
+      transition: opacity 0.35s, transform 0.35s;
+    }
+    .mxyz_result.mxyz_pop { opacity: 1; transform: scale(1); }
+    .mxyz_result-desc { font-size: 13px; color: #7a6a56; margin-top: 6px; min-height: 18px; }
+
+    /* 传感器数值监控条（调试用） */
+    .mxyz_meter {
+      max-width: 420px;
+      margin: 14px auto 0;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 8px 14px;
+      font-family: Consolas, monospace;
+      font-size: 12px;
+      color: #a5f3d0;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    /* 降级 / 权限按钮 */
+    .mxyz_btn-area { text-align: center; margin-top: 16px; }
+    .mxyz_btn {
+      border: none;
+      background: #c96f2f;
+      color: #fff;
+      font-size: 15px;
+      padding: 12px 30px;
+      border-radius: 24px;
+      cursor: pointer;
+      display: none;
+      margin: 6px;
+    }
+    .mxyz_btn.mxyz_show { display: inline-block; }
+    .mxyz_btn:active { transform: scale(0.95); }
+
+    /* 不支持提示 */
+    .mxyz_warn {
+      max-width: 420px;
+      margin: 14px auto 0;
+      background: rgba(214, 69, 69, 0.18);
+      border: 1px solid rgba(214, 69, 69, 0.5);
+      border-radius: 12px;
+      padding: 12px;
+      font-size: 13px;
+      text-align: center;
+      color: #ffb3b3;
+      display: none;
+    }
+    .mxyz_warn.mxyz_show { display: block; }
+
+    /* 冷却提示 */
+    .mxyz_cool-tip {
+      text-align: center;
+      font-size: 12px;
+      color: #c9a97e;
+      margin-top: 10px;
+      min-height: 16px;
+    }
+
+    /* 运行录屏插入区 */
+    .mxyz_video-box {
+      max-width: 420px;
+      margin: 22px auto 0;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+      padding: 14px;
+    }
+    .mxyz_video-box h2 { font-size: 15px; margin-bottom: 8px; color: #f5e9d8; }
+    .mxyz_video-box video {
+      width: 100%;
+      border-radius: 8px;
+      background: #000;
+      display: none;
+    }
+    .mxyz_video-box video.mxyz_has-src { display: block; }
+    .mxyz_video-pick {
+      display: block;
+      width: 100%;
+      margin-top: 10px;
+      padding: 10px;
+      border: 1px dashed #8a6d4a;
+      border-radius: 8px;
+      color: #c9a97e;
+      font-size: 13px;
+      cursor: pointer;
+      text-align: center;
+    }
+    .mxyz_video-pick:hover { border-color: #f5e9d8; color: #f5e9d8; }
+
+    /* 答辩说明 */
+    .mxyz_defense {
+      max-width: 420px;
+      margin: 16px auto 0;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+      padding: 14px;
+      font-size: 13px;
+      line-height: 1.9;
+      color: #e3d4bd;
+    }
+    .mxyz_defense h2 { font-size: 15px; color: #f5e9d8; margin-bottom: 6px; }
+
+    .mxyz_back {
+      display: block;
+      text-align: center;
+      margin: 20px auto 6px;
+      color: #c9a97e;
+      text-decoration: none;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <h1 class="mxyz_title">摇一摇 · 今日菜谱</h1>
+  <p class="mxyz_sub">摇一摇手机，摇出今日菜谱 · 阈值 18 · 1.5s 冷却</p>
+
+  <!-- 主卡片 -->
+  <div class="mxyz_shake-card">
+    <span class="mxyz_shake-ico" id="mxyz_shakeIco">📱</span>
+    <p class="mxyz_hint">摇一摇手机，摇出今日菜谱！</p>
+    <div class="mxyz_result" id="mxyz_result"></div>
+    <div class="mxyz_result-desc" id="mxyz_resultDesc"></div>
+  </div>
+
+  <!-- 加速度实时监控 -->
+  <div class="mxyz_meter">
+    <span>合加速度: <b id="mxyz_meterVal">--</b></span>
+    <span>冷却中: <b id="mxyz_meterCool">否</b></span>
+  </div>
+
+  <!-- 不支持警告（降级提示） -->
+  <div class="mxyz_warn" id="mxyz_warn">
+    当前设备不支持加速度传感器，请用手机打开～<br>也可以点下面的按钮手动摇一次。
+  </div>
+
+  <!-- 降级 / 权限按钮 -->
+  <div class="mxyz_btn-area">
+    <button class="mxyz_btn" id="mxyz_permBtn">允许使用动作传感器（iOS）</button>
+    <button class="mxyz_btn" id="mxyz_manualBtn">点我摇一次（降级方案）</button>
+  </div>
+  <p class="mxyz_cool-tip" id="mxyz_coolTip"></p>
+
+  <!-- 运行录屏插入区：选择本地视频即可播放 -->
+  <div class="mxyz_video-box">
+    <h2>运行录屏（提交作业用）</h2>
+    <video id="mxyz_demoVideo" controls playsinline></video>
+    <label class="mxyz_video-pick">
+      点击选择本地录屏视频插入这里
+      <input type="file" id="mxyz_videoInput" accept="video/*" style="display:none">
+    </label>
+  </div>
+
+  <!-- 答辩说明 -->
+  <div class="mxyz_defense">
+    <h2>答辩：accelerationIncludingGravity 与 acceleration 的区别</h2>
+    <b>accelerationIncludingGravity</b>：设备感受到的「全部加速度」，包含重力在三个轴上的分量。
+    手机静止平放时它约等于重力（z 轴 ≈ ±9.8），所以不需要重力计也能用，兼容性好。<br>
+    <b>acceleration</b>：去掉了重力后的「纯」加速度，只反映设备本身的运动。
+    静止时接近 0，但部分老设备不支持（值为 null），必须做判空防御。<br>
+    本页摇动检测用 accelerationIncludingGravity：摇动会让重力分量在各轴间剧烈变化，
+    三轴平方和开方很容易超过阈值 18，检测更灵敏。
+  </div>
+
+  <a class="mxyz_back" href="index.html">返回首页</a>
+
+  <script>
+    // mxyz_dishes：可摇出的菜谱池
+    const mxyz_dishes = [
+      { name: '番茄炒蛋', desc: '酸甜开胃，新手也能秒会' },
+      { name: '红烧肉', desc: '浓油赤酱，肥而不腻' },
+      { name: '麻婆豆腐', desc: '麻辣鲜香，下饭神器' },
+      { name: '清蒸鲈鱼', desc: '清淡鲜美，营养满分' },
+      { name: '宫保鸡丁', desc: '荔枝口，花生脆' },
+      { name: '酸辣土豆丝', desc: '酸辣脆爽，三块钱的快乐' },
+      { name: '可乐鸡翅', desc: '甜咸交织，小朋友最爱' },
+      { name: '蒜蓉西兰花', desc: '健康轻食，多吃不胖' }
+    ];
+
+    // mxyz_COOLDOWN：冷却时间 1.5s，防止一次摇动重复触发
+    const mxyz_COOLDOWN = 1500;
+    const mxyz_THRESHOLD = 18;      // 摇动判定阈值（合加速度）
+    let mxyz_lastShake = 0;         // 上次触发的时间戳
+    let mxyz_gotEvent = false;      // 是否收到过传感器数据
+    let mxyz_supportCheckTimer = null;
+
+    // DOM 引用
+    const mxyz_resultEl = document.getElementById('mxyz_result');
+    const mxyz_descEl = document.getElementById('mxyz_resultDesc');
+    const mxyz_icoEl = document.getElementById('mxyz_shakeIco');
+    const mxyz_coolTipEl = document.getElementById('mxyz_coolTip');
+
+    // mxyz_showDish：随机抽一道菜并带弹出动画显示（降级按钮与摇动共用）
+    function mxyz_showDish() {
+      const dish = mxyz_dishes[Math.floor(Math.random() * mxyz_dishes.length)];
+      // 先移除动画类，强制浏览器重新计算后再加回来，保证连续触发也有动画
+      mxyz_resultEl.classList.remove('mxyz_pop');
+      void mxyz_resultEl.offsetWidth;
+      mxyz_resultEl.textContent = '→ ' + dish.name + ' ←';
+      mxyz_descEl.textContent = dish.desc;
+      mxyz_resultEl.classList.add('mxyz_pop');
+      // 手机图标同步晃一下
+      mxyz_icoEl.classList.remove('mxyz_shaking');
+      void mxyz_icoEl.offsetWidth;
+      mxyz_icoEl.classList.add('mxyz_shaking');
+    }
+
+    // mxyz_startCool：进入冷却，1.5s 内再次摇动不触发
+    function mxyz_startCool() {
+      mxyz_lastShake = Date.now();
+      document.getElementById('mxyz_meterCool').textContent = '是';
+      mxyz_coolTipEl.textContent = '冷却中…（1.5 秒内再摇不触发）';
+      setTimeout(() => {
+        document.getElementById('mxyz_meterCool').textContent = '否';
+        mxyz_coolTipEl.textContent = '';
+      }, mxyz_COOLDOWN);
+    }
+
+    // mxyz_onMotion：devicemotion 事件处理——计算合加速度并判定摇动
+    function mxyz_onMotion(e) {
+      const acc = e.accelerationIncludingGravity;
+      // 防御：部分设备事件会触发但值为 null，必须判空
+      if (!acc || (acc.x === null && acc.y === null && acc.z === null)) return;
+
+      // 首次拿到有效数据：标记支持，隐藏降级提示
+      if (!mxyz_gotEvent) {
+        mxyz_gotEvent = true;
+        clearTimeout(mxyz_supportCheckTimer);
+        document.getElementById('mxyz_warn').classList.remove('mxyz_show');
+        document.getElementById('mxyz_manualBtn').classList.remove('mxyz_show');
+      }
+
+      // 三轴合加速度 = √(x² + y² + z²)
+      const g = Math.sqrt(acc.x * acc.x + acc.y * acc.y + acc.z * acc.z);
+      document.getElementById('mxyz_meterVal').textContent = g.toFixed(2);
+
+      // 超过阈值且不在冷却中 → 判定为一次摇动
+      if (g > mxyz_THRESHOLD && Date.now() - mxyz_lastShake > mxyz_COOLDOWN) {
+        mxyz_showDish();
+        mxyz_startCool();
+      }
+    }
+
+    // mxyz_initPermission：iOS 13+ 需要用户手势内主动申请动作传感器权限
+    function mxyz_initPermission() {
+      if (typeof DeviceMotionEvent !== 'undefined' &&
+          typeof DeviceMotionEvent.requestPermission === 'function') {
+        DeviceMotionEvent.requestPermission()
+          .then(state => {
+            if (state === 'granted') {
+              window.addEventListener('devicemotion', mxyz_onMotion);
+              document.getElementById('mxyz_permBtn').classList.remove('mxyz_show');
+            } else {
+              // 用户拒绝授权：提示并启用降级按钮
+              mxyz_enterFallback('授权被拒绝，请在设置中允许「动作与方向」');
+            }
+          })
+          .catch(() => mxyz_enterFallback('权限申请失败'));
+      } else if (typeof DeviceMotionEvent === 'undefined') {
+        // 完全没有 devicemotion（多数桌面浏览器）：降级
+        mxyz_enterFallback();
+      } else {
+        // 非 iOS 标准 API：直接监听，等待首条数据验证支持
+        window.addEventListener('devicemotion', mxyz_onMotion);
+      }
+    }
+
+    // mxyz_enterFallback：设备不支持时的降级——显示提示 + 手动摇按钮
+    function mxyz_enterFallback(msg) {
+      clearTimeout(mxyz_supportCheckTimer);
+      const warn = document.getElementById('mxyz_warn');
+      if (msg) warn.innerHTML = msg + '<br>也可以点下面的按钮手动摇一次。';
+      warn.classList.add('mxyz_show');
+      document.getElementById('mxyz_manualBtn').classList.add('mxyz_show');
+    }
+
+    // 降级按钮：没有传感器也能抽菜谱
+    document.getElementById('mxyz_manualBtn').addEventListener('click', function () {
+      mxyz_showDish();
+      this.textContent = '再摇一次';
+    });
+
+    // iOS 权限按钮（仅 iOS 上会显示）
+    document.getElementById('mxyz_permBtn').addEventListener('click', mxyz_initPermission);
+
+    // 视频选择：读取本地视频文件，生成临时地址给 video 播放
+    document.getElementById('mxyz_videoInput').addEventListener('change', function () {
+      const file = this.files[0];
+      if (!file) return;
+      const video = document.getElementById('mxyz_demoVideo');
+      video.src = URL.createObjectURL(file);
+      video.classList.add('mxyz_has-src');
+      video.play().catch(() => {});
+    });
+
+    // 启动逻辑：
+    // 1) iOS 13+ 的 Safari 必须由用户点击触发权限申请 → 先显示权限按钮
+    // 2) 其他环境直接监听 devicemotion
+    // 3) 2 秒内没收到有效数据 → 判定不支持，进入降级
+    (function mxyz_boot() {
+      const isIOSPermission = typeof DeviceMotionEvent !== 'undefined' &&
+        typeof DeviceMotionEvent.requestPermission === 'function';
+      if (isIOSPermission) {
+        document.getElementById('mxyz_permBtn').classList.add('mxyz_show');
+        document.getElementById('mxyz_manualBtn').classList.add('mxyz_show');
+        // iOS 需要点击授权后才监听，这里先启动支持检测
+        mxyz_supportCheckTimer = setTimeout(() => {
+          if (!mxyz_gotEvent) mxyz_enterFallback();
+        }, 2000);
+      } else if (typeof DeviceMotionEvent === 'undefined') {
+        // 桌面浏览器：直接降级，不报错不白屏
+        mxyz_enterFallback();
+      } else {
+        window.addEventListener('devicemotion', mxyz_onMotion);
+        // 2 秒支持检测：没数据就降级
+        mxyz_supportCheckTimer = setTimeout(() => {
+          if (!mxyz_gotEvent) mxyz_enterFallback();
+        }, 2000);
+      }
+    })();
+  </script>
+</body>
+</html>
