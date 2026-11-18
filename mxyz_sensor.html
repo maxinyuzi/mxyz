@@ -184,6 +184,12 @@
     <span>合加速度: <b id="mxyz_meterVal">--</b></span>
     <span>冷却中: <b id="mxyz_meterCool">否</b></span>
   </div>
+  <!-- 诊断条：安全上下文 / API 可用性 / 数据接收状态，用于排查「摇不动」 -->
+  <div class="mxyz_meter">
+    <span>HTTPS: <b id="mxyz_secVal">--</b></span>
+    <span>API: <b id="mxyz_apiVal">--</b></span>
+    <span>有数据: <b id="mxyz_dataVal">否</b></span>
+  </div>
 
   <!-- 不支持警告（降级提示） -->
   <div class="mxyz_warn" id="mxyz_warn">
@@ -284,6 +290,7 @@
         clearTimeout(mxyz_supportCheckTimer);
         document.getElementById('mxyz_warn').classList.remove('mxyz_show');
         document.getElementById('mxyz_manualBtn').classList.remove('mxyz_show');
+        document.getElementById('mxyz_dataVal').textContent = '是';
       }
 
       // 三轴合加速度 = √(x² + y² + z²)
@@ -350,12 +357,27 @@
     });
 
     // 启动逻辑：
-    // 1) iOS 13+ 的 Safari 必须由用户点击触发权限申请 → 先显示权限按钮
-    // 2) 其他环境直接监听 devicemotion
-    // 3) 2 秒内没收到有效数据 → 判定不支持，进入降级
+    // 1) 先填诊断条（HTTPS 状态与 API 可用性）
+    // 2) iOS 13+ 的 Safari 必须由用户点击触发权限申请 → 先显示权限按钮
+    // 3) 其他环境直接监听 devicemotion
+    // 4) 2 秒内没收到有效数据 → 判定不支持，进入降级
     (function mxyz_boot() {
+      // 诊断：是否为安全上下文（HTTP 下浏览器会禁用传感器 API）
+      document.getElementById('mxyz_secVal').textContent =
+        window.isSecureContext ? '是' : '否（HTTP 已被禁用）';
+      // 诊断：devicemotion API 是否存在
+      document.getElementById('mxyz_apiVal').textContent =
+        (typeof DeviceMotionEvent !== 'undefined') ? '存在' : '不存在';
+
       const isIOSPermission = typeof DeviceMotionEvent !== 'undefined' &&
         typeof DeviceMotionEvent.requestPermission === 'function';
+
+      // HTTP 环境：传感器肯定不工作，直接给出针对性提示 + 降级按钮
+      if (!window.isSecureContext && typeof DeviceMotionEvent !== 'undefined') {
+        mxyz_enterFallback('当前是 HTTP 页面，浏览器会禁用加速度传感器，请用 HTTPS 地址打开本页');
+        return;
+      }
+
       if (isIOSPermission) {
         document.getElementById('mxyz_permBtn').classList.add('mxyz_show');
         document.getElementById('mxyz_manualBtn').classList.add('mxyz_show');
