@@ -6,3 +6,6 @@ node_modules/
 
 # IDE 生成的临时分享压缩包
 .trae-html-share-packages/
+
+# API 密钥配置，含硅基流动 Key，禁止入库
+.env

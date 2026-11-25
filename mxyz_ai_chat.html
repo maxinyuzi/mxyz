@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<!--
+  作者：马昕玉子
+  建立时间：2026-11-25
+  使用大模型：GLM-5.3-Flash
+  功能名称：AI 智能助手对话页（硅基流动 Qwen 模型，经本地 ai-server 代理）
+-->
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI 智能助手 · 马昕玉子的作品集</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      min-height: 100vh;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      font-family: "Microsoft YaHei", sans-serif;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* 顶栏 */
+    .mxyz_header {
+      padding: 16px;
+      text-align: center;
+      color: #e94560;
+    }
+    .mxyz_header h1 { font-size: 22px; }
+    .mxyz_header .mxyz_model-tag {
+      display: inline-block;
+      margin-top: 6px;
+      padding: 3px 12px;
+      font-size: 12px;
+      color: #aaccff;
+      border: 1px solid #4a6fa5;
+      border-radius: 999px;
+      background: rgba(74, 111, 165, 0.2);
+    }
+
+    /* 消息区：flex 纵向布局，自动滚动到底部 */
+    .mxyz_chat-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      max-width: 720px;
+      width: 100%;
+      margin: 0 auto;
+    }
+    .mxyz_msg {
+      max-width: 80%;
+      padding: 10px 14px;
+      border-radius: 14px;
+      margin-bottom: 12px;
+      font-size: 14px;
+      line-height: 1.7;
+      white-space: pre-wrap;   /* 保留 AI 回复里的换行 */
+      word-break: break-word;
+    }
+    .mxyz_msg-user {
+      margin-left: auto;
+      background: #e94560;
+      color: #fff;
+      border-bottom-right-radius: 4px;
+    }
+    .mxyz_msg-ai {
+      margin-right: auto;
+      background: #223a5e;
+      color: #dce6f5;
+      border-bottom-left-radius: 4px;
+    }
+    .mxyz_msg-ai.mxyz_loading { color: #8fa3c8; font-style: italic; }
+    .mxyz_msg-ai.mxyz_error { background: #5e2233; color: #ffb3c1; }
+
+    /* 欢迎提示 */
+    .mxyz_welcome {
+      text-align: center;
+      color: #8fa3c8;
+      font-size: 13px;
+      padding: 30px 16px;
+    }
+
+    /* 底部输入区：吸底固定 */
+    .mxyz_input-bar {
+      display: flex;
+      gap: 10px;
+      padding: 12px 16px;
+      background: rgba(22, 33, 62, 0.9);
+      border-top: 1px solid #2a4a7a;
+      max-width: 720px;
+      width: 100%;
+      margin: 0 auto;
+    }
+    .mxyz_input-bar input {
+      flex: 1;
+      padding: 12px 14px;
+      border: 1px solid #2a4a7a;
+      border-radius: 22px;
+      background: #0f1f3d;
+      color: #dce6f5;
+      font-size: 14px;
+      outline: none;
+    }
+    .mxyz_input-bar input:focus { border-color: #e94560; }
+    .mxyz_input-bar input:disabled { opacity: 0.5; }
+    .mxyz_send-btn {
+      padding: 12px 22px;
+      border: none;
+      border-radius: 22px;
+      background: #e94560;
+      color: #fff;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .mxyz_send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* 返回首页 */
+    .mxyz_back {
+      display: block;
+      text-align: center;
+      color: #8fa3c8;
+      font-size: 13px;
+      padding: 14px;
+      text-decoration: none;
+    }
+    .mxyz_back:hover { color: #e94560; }
+  </style>
+</head>
+<body>
+  <header class="mxyz_header">
+    <h1>🤖 AI 智能助手</h1>
+    <span class="mxyz_model-tag" id="mxyz_modelTag">模型加载中…</span>
+  </header>
+
+  <main class="mxyz_chat-area" id="mxyz_chatArea">
+    <div class="mxyz_welcome">你好！我是本站的 AI 助手，随便问我点什么吧～<br>（对话由本地 ai-server 代理硅基流动 Qwen 模型，端口 3005）</div>
+  </main>
+
+  <div class="mxyz_input-bar">
+    <input type="text" id="mxyz_input" placeholder="输入消息，回车发送…" autocomplete="off">
+    <button class="mxyz_send-btn" id="mxyz_sendBtn">发送</button>
+  </div>
+
+  <a class="mxyz_back" href="index.html">← 返回首页</a>
+
+  <script>
+    const mxyz_API = 'http://localhost:3005';
+
+    // 对话历史缓存：[{role, content}]，随请求发给后端维持上下文
+    const mxyz_history = [];
+
+    // el：按 id 取元素的快捷函数
+    function el(id) { return document.getElementById(id); }
+
+    // mxyz_addMsg：在消息区追加一条气泡，返回该 DOM 节点（便于后续更新内容）
+    function mxyz_addMsg(text, who) {
+      const div = document.createElement('div');
+      div.className = 'mxyz_msg mxyz_msg-' + who;
+      div.textContent = text;
+      el('mxyz_chatArea').appendChild(div);
+      // 新消息出现后自动滚到最底部
+      el('mxyz_chatArea').scrollTop = el('mxyz_chatArea').scrollHeight;
+      return div;
+    }
+
+    // mxyz_send：发送消息主流程——渲染气泡 → 请求后端 → 用 AI 回复替换占位气泡
+    async function mxyz_send() {
+      const input = el('mxyz_input');
+      const text = input.value.trim();
+      if (!text) return; // 空消息不发
+
+      input.value = '';
+      mxyz_addMsg(text, 'user');
+      mxyz_history.push({ role: 'user', content: text });
+
+      // 占位气泡显示"思考中"，期间禁用输入防连发
+      const loading = mxyz_addMsg('思考中…', 'ai loading');
+      el('mxyz_sendBtn').disabled = true;
+      input.disabled = true;
+
+      try {
+        const resp = await fetch(mxyz_API + '/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: text, history: mxyz_history })
+        });
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(data.error || '请求失败');
+        const reply = data.reply;
+        loading.textContent = reply;          // 用真实回复替换占位
+        loading.classList.remove('loading');
+        mxyz_history.push({ role: 'assistant', content: reply }); // 存入历史供多轮对话
+      } catch (err) {
+        // 失败：占位气泡变成错误提示（最常见原因：ai-server 没启动）
+        loading.textContent = '出错了：' + err.message + '（请确认已在 db 目录运行 node ai-server.js）';
+        loading.classList.add('error');
+        loading.classList.remove('loading');
+        mxyz_history.pop(); // 失败的消息撤出历史
+      } finally {
+        el('mxyz_sendBtn').disabled = false;
+        input.disabled = false;
+        input.focus();
+      }
+    }
+
+    // 启动：绑定发送按钮/回车键，并请求健康检查接口拿到模型名显示
+    (function mxyz_boot() {
+      el('mxyz_sendBtn').addEventListener('click', mxyz_send);
+      el('mxyz_input').addEventListener('keydown', e => {
+        if (e.key === 'Enter') mxyz_send();
+      });
+      // 健康检查：顺带验证 ai-server 是否在线
+      fetch(mxyz_API + '/health')
+        .then(r => r.json())
+        .then(d => {
+          const name = (d.model || '未知模型').split('/').pop();
+          el('mxyz_modelTag').textContent = '模型：' + name + (d.hasKey ? '' : '（Key 未配置）');
+        })
+        .catch(() => {
+          el('mxyz_modelTag').textContent = '⚠️ ai-server 未启动（db 目录运行 node ai-server.js）';
+        });
+    })();
+  </script>
+</body>
+</html>
