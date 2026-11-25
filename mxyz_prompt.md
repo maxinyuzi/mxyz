@@ -284,3 +284,9 @@
 ## 2026-11-25 14:48:05
 - 模型：GLM-5.3-Flash
 - 提示词：完成知识库文件上传功能，构建2个知识库文件，完成基于知识库的问答，支持doc和docx，ppt，完成知识库管理（RAG），控制台输出发送给/收到自大模型的数据——已实现 rag-server(3006) + mxyz_rag.html + 示例docx/pptx
+
+---
+
+## 2026-11-25 14:52:48
+- 模型：GLM-5.3-Flash
+- 提示词：完成图像识别功能，上传图片返回该图片的描述，使用已有的api-key和模型——ai-server 新增 /api/vision(Qwen3-VL-8B) + mxyz_vision.html

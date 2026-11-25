@@ -13,6 +13,7 @@
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
+const multer = require('multer');
 
 const app = express();
 const PORT = 3005;
@@ -142,6 +143,72 @@ app.post('/api/chat', async (req, res) => {
   } catch (err) {
     console.error(`[ai-server] ${providerId} 请求失败:`, err.message);
     res.status(err.status || 502).json({ error: `${providerId} 平台请求失败：` + err.message });
+  }
+});
+
+// mul_img：multer 内存存储，图片不落盘、直接 base64 后发给视觉模型
+const mul_img = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
+
+// MIME → dataURL 前缀映射：构造 image_url 需要的 data:image/xxx;base64 地址
+const IMG_MIME = {
+  '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png',
+  '.gif': 'image/gif', '.webp': 'image/webp', '.bmp': 'image/bmp'
+};
+
+// POST /api/vision：图像识别——接收 multipart 字段 image 与可选 prompt，返回图片描述
+app.post('/api/vision', mul_img.single('image'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: '未收到图片文件' });
+
+    // 图片转 base64 dataURL，供视觉模型读取
+    const ext = path.extname(req.file.originalname || '').toLowerCase();
+    const mime = IMG_MIME[ext] || 'image/jpeg';
+    const dataUrl = `data:${mime};base64,${req.file.buffer.toString('base64')}`;
+    const question = (req.body && req.body.prompt) || '请详细描述这张图片的内容。';
+
+    // 视觉消息结构：content 是数组，文本 + image_url 两部分
+    const messages = [
+      { role: 'system', content: '你是图像识别助手，用简洁准确的中文描述图片内容。' },
+      { role: 'user', content: [
+        { type: 'text', text: question },
+        { type: 'image_url', image_url: { url: dataUrl } }
+      ]}
+    ];
+    const sf = PROVIDERS.siliconflow;
+    const model = ENV.SILICONFLOW_VISION_MODEL || 'Qwen/Qwen3-VL-8B-Instruct';
+    if (!sf.apiKey || !sf.baseUrl) {
+      return res.status(500).json({ error: '服务器未配置硅基流动 API，请检查 .env 文件' });
+    }
+
+    // 控制台输出发送的数据（base64 太长，截断显示字节数）
+    console.log('\n========== [视觉] 发送给大模型的数据 ==========');
+    console.log('模型:', model, '| 图片:', req.file.originalname, `(${req.file.buffer.length} 字节)`, '| 问题:', question);
+    console.log(JSON.stringify({ model, messages: [{ role: 'user', content: [ { type: 'text', text: question }, { type: 'image_url', image_url: { url: `(dataURL, ${dataUrl.length} 字符，已省略)` } } ] }] }, null, 2));
+
+    const resp = await fetch(sf.baseUrl + '/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + sf.apiKey
+      },
+      body: JSON.stringify({ model, messages })
+    });
+    const data = await resp.json();
+    if (!resp.ok) {
+      return res.status(resp.status).json({ error: data.error?.message || '上游接口错误' });
+    }
+
+    // 控制台输出来自大模型的数据
+    console.log('\n========== [视觉] 收到大模型的数据 ==========');
+    console.log(JSON.stringify(data, null, 2));
+
+    res.json({
+      description: data.choices?.[0]?.message?.content || '(AI 未返回内容)',
+      model
+    });
+  } catch (err) {
+    console.error('[vision] 识别失败:', err.message);
+    res.status(502).json({ error: '图像识别失败：' + err.message });
   }
 });
 
