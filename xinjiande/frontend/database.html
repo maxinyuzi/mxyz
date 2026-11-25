@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>数据库连接 - 悦听音乐</title>
+  <link rel="stylesheet" href="css/mxyz_database.css">
+</head>
+<body>
+  <!-- canvas 背景动画 -->
+  <canvas id="mxyz_bg_canvas"></canvas>
+
+  <div class="mxyz_page">
+    <header class="mxyz_header">
+      <a class="mxyz_back" href="index.html">‹ 返回首页</a>
+      <h1 class="mxyz_title">数据库连接</h1>
+      <p class="mxyz_subtitle">输入用户名和密码，测试与 MySQL 数据库的连接</p>
+    </header>
+
+    <main class="mxyz_main">
+      <form class="mxyz_form" id="mxyz_connect_form">
+        <label class="mxyz_field">
+          <span class="mxyz_label">主机地址</span>
+          <input class="mxyz_input" type="text" id="mxyz_host" value="localhost" placeholder="localhost">
+        </label>
+        <label class="mxyz_field">
+          <span class="mxyz_label">端口号</span>
+          <input class="mxyz_input" type="text" id="mxyz_port" value="3306" placeholder="3306">
+        </label>
+        <label class="mxyz_field">
+          <span class="mxyz_label">用户名</span>
+          <input class="mxyz_input" type="text" id="mxyz_user" value="root" placeholder="root">
+        </label>
+        <label class="mxyz_field">
+          <span class="mxyz_label">密码</span>
+          <input class="mxyz_input" type="password" id="mxyz_password" value="96336mxyz" placeholder="请输入密码">
+        </label>
+        <label class="mxyz_field">
+          <span class="mxyz_label">数据库名</span>
+          <input class="mxyz_input" type="text" id="mxyz_database" value="" placeholder="留空则仅测试服务器连接">
+        </label>
+        <button class="mxyz_btn" type="submit" id="mxyz_submit_btn">连接数据库</button>
+      </form>
+
+      <div class="mxyz_result" id="mxyz_result" hidden>
+        <p class="mxyz_result_msg" id="mxyz_result_msg"></p>
+        <pre class="mxyz_result_detail" id="mxyz_result_detail"></pre>
+      </div>
+    </main>
+
+    <footer class="mxyz_footer">
+      <p>课程作业 · 数据库连接测试</p>
+    </footer>
+  </div>
+
+  <script src="js/mxyz_background.js"></script>
+  <script src="js/mxyz_database.js"></script>
+</body>
+</html>

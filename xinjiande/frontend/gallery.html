@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>图文列表 - 悦听音乐</title>
+  <link rel="stylesheet" href="css/mxyz_gallery.css">
+</head>
+<body>
+  <!-- canvas 背景动画 -->
+  <canvas id="mxyz_bg_canvas"></canvas>
+
+  <div class="mxyz_page">
+    <header class="mxyz_header">
+      <a class="mxyz_back" href="index.html">‹ 返回首页</a>
+      <h1 class="mxyz_title">图文列表</h1>
+      <p class="mxyz_subtitle">图文数据存储于 MySQL 表 mxyz_image_texts，图片为本地生成的音乐主题插画</p>
+    </header>
+
+    <main class="mxyz_main">
+      <section class="mxyz_api_card">
+        <h2 class="mxyz_section_title">后端接口</h2>
+        <p class="mxyz_api_link">
+          <span class="mxyz_api_method">GET</span>
+          <a href="/api/mxyz_images" id="mxyz_api_url" target="_blank">/api/mxyz_images</a>
+        </p>
+        <p class="mxyz_api_desc">返回统一 JSON 格式：{ "code": 0, "msg": "提示信息", "data": { "total": 8, "list": [...] } }</p>
+      </section>
+
+      <h2 class="mxyz_section_title">图文列表（<span id="mxyz_total">0</span> 条）</h2>
+      <div class="mxyz_gallery_list" id="mxyz_gallery_list">
+        <p class="mxyz_loading" id="mxyz_loading">正在加载图文数据...</p>
+      </div>
+    </main>
+
+    <footer class="mxyz_footer">
+      <p>课程作业 · 图文列表 · 数据来源 MySQL</p>
+    </footer>
+  </div>
+
+  <script src="js/mxyz_background.js"></script>
+  <script src="js/mxyz_gallery.js"></script>
+</body>
+</html>

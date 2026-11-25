@@ -1,0 +1,17 @@
+{
+  "name": "mxyz-backend",
+  "version": "1.0.0",
+  "description": "音乐播放器网站（模仿）课程作业后端",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "author": "马昕玉子 24002120214",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^18.0.10",
+    "express": "^4.21.2",
+    "mysql2": "^3.24.6"
+  }
+}

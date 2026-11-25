@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>悦听音乐 - 项目导航首页</title>
+  <link rel="stylesheet" href="css/mxyz_index.css">
+</head>
+<body>
+  <!-- canvas 背景动画 -->
+  <canvas id="mxyz_bg_canvas"></canvas>
+
+  <div class="mxyz_page">
+    <header class="mxyz_header">
+      <div class="mxyz_brand">
+        <span class="mxyz_logo">♪</span>
+        <h1 class="mxyz_title">悦听音乐</h1>
+        <p class="mxyz_subtitle">Music Player · 在线音乐播放网站（模仿类项目）</p>
+      </div>
+      <div class="mxyz_info_card">
+        <p class="mxyz_info_item"><span class="mxyz_info_label">姓名</span>马昕玉子</p>
+        <p class="mxyz_info_item"><span class="mxyz_info_label">学号</span>24002120214</p>
+        <p class="mxyz_info_item"><span class="mxyz_info_label">项目名称</span>悦听音乐（音乐播放器网站）</p>
+        <p class="mxyz_info_item"><span class="mxyz_info_label">项目类别</span>模仿</p>
+      </div>
+    </header>
+
+    <main class="mxyz_main">
+      <h2 class="mxyz_section_title">页面导航</h2>
+      <nav class="mxyz_nav_list">
+        <a class="mxyz_nav_item" href="index.html">
+          <span class="mxyz_nav_icon">🏠</span>
+          <span class="mxyz_nav_text">
+            <strong>首页</strong>
+            <em>项目介绍与页面导航</em>
+          </span>
+          <span class="mxyz_nav_arrow">›</span>
+        </a>
+        <a class="mxyz_nav_item" href="database.html">
+          <span class="mxyz_nav_icon">🗄️</span>
+          <span class="mxyz_nav_text">
+            <strong>数据库连接</strong>
+            <em>输入用户名密码测试 MySQL 连接</em>
+          </span>
+          <span class="mxyz_nav_arrow">›</span>
+        </a>
+        <a class="mxyz_nav_item" href="news.html">
+          <span class="mxyz_nav_icon">📰</span>
+          <span class="mxyz_nav_text">
+            <strong>科技新闻列表</strong>
+            <em>MySQL 数据表驱动的新闻展示</em>
+          </span>
+          <span class="mxyz_nav_arrow">›</span>
+        </a>
+        <a class="mxyz_nav_item" href="gallery.html">
+          <span class="mxyz_nav_icon">🖼️</span>
+          <span class="mxyz_nav_text">
+            <strong>图文列表</strong>
+            <em>音乐主题图文卡片展示</em>
+          </span>
+          <span class="mxyz_nav_arrow">›</span>
+        </a>
+        <!-- 新完成的页面将在下方追加超链接入口（文件名包含 detail 的页面除外） -->
+      </nav>
+      <p class="mxyz_tip">提示：更多功能页面将在后续开发中陆续加入上方导航。</p>
+    </main>
+
+    <footer class="mxyz_footer">
+      <p>课程作业 · 前端原生 HTML / CSS / JavaScript · 后端 Node.js + Express + MySQL</p>
+    </footer>
+  </div>
+
+  <script src="js/mxyz_background.js"></script>
+</body>
+</html>

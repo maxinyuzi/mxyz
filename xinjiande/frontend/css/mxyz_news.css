@@ -1,0 +1,188 @@
+/* 姓名：马昕玉子 | 学号：24002120214 | 时间：2026-11-20 | 大模型：GLM-5.3-Flash */
+/* 科技新闻列表页样式 */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+  color: #e8ecf4;
+  background: linear-gradient(135deg, #12172b 0%, #1d2547 50%, #2b1d4d 100%);
+  overflow-x: hidden;
+}
+
+#mxyz_bg_canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.mxyz_page {
+  position: relative;
+  z-index: 1;
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 40px 24px 32px;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* 头部 */
+.mxyz_header {
+  margin-bottom: 30px;
+}
+
+.mxyz_back {
+  display: inline-block;
+  margin-bottom: 18px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  color: #e8ecf4;
+  text-decoration: none;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  transition: background 0.2s ease;
+}
+
+.mxyz_back:hover {
+  background: rgba(163, 75, 255, 0.3);
+}
+
+.mxyz_title {
+  font-size: 32px;
+  letter-spacing: 3px;
+  margin-bottom: 8px;
+}
+
+.mxyz_subtitle {
+  font-size: 14px;
+  color: #a7b0c8;
+}
+
+/* 通用标题 */
+.mxyz_section_title {
+  font-size: 18px;
+  margin-bottom: 14px;
+  padding-left: 12px;
+  border-left: 4px solid #a34bff;
+}
+
+/* 接口卡片 */
+.mxyz_api_card {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 14px;
+  padding: 20px 24px;
+  backdrop-filter: blur(6px);
+  margin-bottom: 28px;
+}
+
+.mxyz_api_link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.mxyz_api_method {
+  padding: 3px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: bold;
+  color: #6fe3a1;
+  background: rgba(80, 220, 130, 0.15);
+  border: 1px solid rgba(80, 220, 130, 0.4);
+}
+
+.mxyz_api_link a {
+  font-family: Consolas, monospace;
+  font-size: 15px;
+  color: #b9d0ff;
+  text-decoration: none;
+}
+
+.mxyz_api_link a:hover {
+  text-decoration: underline;
+}
+
+.mxyz_api_desc {
+  font-size: 12px;
+  color: #8b93a8;
+  font-family: Consolas, monospace;
+}
+
+/* 新闻列表 */
+.mxyz_news_list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.mxyz_loading,
+.mxyz_empty {
+  font-size: 14px;
+  color: #8b93a8;
+  text-align: center;
+  padding: 30px 0;
+}
+
+.mxyz_news_item {
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  padding: 18px 22px;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.mxyz_news_item:hover {
+  transform: translateY(-2px);
+  background: rgba(163, 75, 255, 0.18);
+}
+
+.mxyz_news_title {
+  font-size: 16px;
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
+
+.mxyz_news_summary {
+  font-size: 13px;
+  color: #b9c1d8;
+  line-height: 1.7;
+  margin-bottom: 12px;
+}
+
+.mxyz_news_meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  font-size: 12px;
+  color: #8b93a8;
+}
+
+.mxyz_news_meta .mxyz_meta_source {
+  color: #c9b6ff;
+}
+
+/* 底部 */
+.mxyz_footer {
+  margin-top: auto;
+  padding-top: 30px;
+  text-align: center;
+  font-size: 12px;
+  color: #7d8497;
+}
