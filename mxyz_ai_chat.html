@@ -38,6 +38,53 @@
       background: rgba(74, 111, 165, 0.2);
     }
 
+    /* 平台切换下拉框（任务三） */
+    .mxyz_provider-sel {
+      display: block;
+      margin: 8px auto 0;
+      padding: 6px 12px;
+      font-size: 13px;
+      color: #dce6f5;
+      background: #0f1f3d;
+      border: 1px solid #4a6fa5;
+      border-radius: 10px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    /* 作业要点折叠区 */
+    .mxyz_notes {
+      max-width: 720px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 0 16px 12px;
+    }
+    .mxyz_notes details {
+      background: rgba(34, 58, 94, 0.6);
+      border: 1px solid #2a4a7a;
+      border-radius: 12px;
+      padding: 10px 14px;
+      color: #dce6f5;
+      font-size: 13px;
+      line-height: 1.8;
+    }
+    .mxyz_notes summary { cursor: pointer; color: #e9a0b0; font-weight: bold; }
+    .mxyz_notes code {
+      background: #0f1f3d;
+      padding: 1px 6px;
+      border-radius: 4px;
+      color: #8fd0ff;
+      font-size: 12px;
+    }
+    .mxyz_notes pre {
+      background: #0f1f3d;
+      padding: 8px 10px;
+      border-radius: 8px;
+      white-space: pre-wrap;
+      font-size: 12px;
+      color: #a8c5e8;
+    }
+
     /* 消息区：flex 纵向布局，自动滚动到底部 */
     .mxyz_chat-area {
       flex: 1;
@@ -128,12 +175,13 @@
 </head>
 <body>
   <header class="mxyz_header">
-    <h1>🤖 AI 智能助手</h1>
+    <h1>🍜 中华美食街 · 在线客服</h1>
+    <select class="mxyz_provider-sel" id="mxyz_providerSel" aria-label="切换 AI 平台"></select>
     <span class="mxyz_model-tag" id="mxyz_modelTag">模型加载中…</span>
   </header>
 
   <main class="mxyz_chat-area" id="mxyz_chatArea">
-    <div class="mxyz_welcome">你好！我是本站的 AI 助手，随便问我点什么吧～<br>（对话由本地 ai-server 代理硅基流动 Qwen 模型，端口 3005）</div>
+    <div class="mxyz_welcome">欢迎光临中华美食街！我是客服小美，营业时间、招牌菜、配菜随便问～<br>（对话经本地 ai-server 代理，端口 3005，支持硅基流动 / 七牛切换）</div>
   </main>
 
   <div class="mxyz_input-bar">
@@ -142,6 +190,37 @@
   </div>
 
   <a class="mxyz_back" href="index.html">← 返回首页</a>
+
+  <!-- 作业要点：任务一审计结论 / 任务二提示词与测试 / 任务三答辩三问 -->
+  <div class="mxyz_notes">
+    <details>
+      <summary>作业要点（点开查看：Key 安全 / 客服提示词 / 多平台答辩）</summary>
+      <b>任务一 · 把 Key 藏好</b>：.env 已在 .gitignore 且从未被提交（git log 无记录）；
+      全部 HTML 前端源码 grep 无 Key 残留；Key 只出现在 db/ai-server.js 服务端读取。
+      3 处可能泄露 Key 的地方：① 前端 JS 源码（浏览器可直接查看，绝不能写）；② Git 仓库及历史提交
+      （未忽略的 .env 会被永久留痕）；③ 提示词日志 / 聊天与作业截图（明文截图必须打码）。
+      <br><b>任务二 · 客服人设改造</b>——system 提示词（存于 db/ai-server.js 的 SYSTEM_PROMPT）：
+      <pre>你是"中华美食街"的在线客服小美。
+你只回答以下三类问题：
+1. 营业时间：每天 10:00-22:00，全年无休。
+2. 招牌菜：秘制烤鸭（98元）、麻辣香锅（58元起）、手工水饺（28元）。
+3. 配菜范围：青菜/豆腐/宽粉/鹌鹑蛋各3元；牛肉丸/午餐肉各6元。
+其他问题一律回答："抱歉，这个问题超出客服范围啦～您可以留言…"
+回答保持简短友好，一律使用中文。</pre>
+      测试 5 问：该答——「你们几点开门」「招牌菜是什么」「加个宽粉多少钱」；
+      该拒——「帮我写个 Python 排序」「今天天气怎么样」。实测 3 答 2 拒全部符合预期。
+      为什么能"管住"模型：system 提示词是最高优先级的角色设定，具体身份 + 白名单式范围
+      （"只回答"+逐条列举）+ 现成拒绝话术三件套，让模型越界时第一步就撞上明确规则，
+      而不是靠它自己判断该不该答。
+      <br><b>任务三 · 多平台热切换答辩三问</b>：
+      ① Key 不能放前端——前端代码用户可直接查看/抓包，Key 等于公开，会被盗刷；放服务端由代理转发才安全。
+      ② 多轮对话要把历史一起发——大模型接口本身无记忆，每次请求都是独立的；
+      只有把之前的 messages 数组带上，模型才知道"刚才聊过什么"，上下文才连贯。
+      ③ 换平台只改 .env 里 3 个值：baseUrl（接口地址）、model（模型名）、apiKey（密钥）——
+      因为各家都兼容 OpenAI 的 /chat/completions 格式，请求结构不变，代码零改动；
+      这正是"配置与代码分离"的好处。
+    </details>
+  </div>
 
   <script>
     const mxyz_API = 'http://localhost:3005';
@@ -182,7 +261,8 @@
         const resp = await fetch(mxyz_API + '/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: text, history: mxyz_history })
+          // provider：带上当前下拉框选中的平台，实现热切换
+          body: JSON.stringify({ message: text, history: mxyz_history, provider: el('mxyz_providerSel').value })
         });
         const data = await resp.json();
         if (!resp.ok) throw new Error(data.error || '请求失败');
@@ -203,18 +283,37 @@
       }
     }
 
-    // 启动：绑定发送按钮/回车键，并请求健康检查接口拿到模型名显示
+    // mxyz_updateModelTag：根据选中的平台更新顶部模型名标签
+    function mxyz_updateModelTag(modelText) {
+      el('mxyz_modelTag').textContent = '模型：' + (modelText || '').split('/').pop();
+    }
+
+    // 启动：绑定发送按钮/回车键；请求 /providers 填充平台下拉框
     (function mxyz_boot() {
       el('mxyz_sendBtn').addEventListener('click', mxyz_send);
       el('mxyz_input').addEventListener('keydown', e => {
         if (e.key === 'Enter') mxyz_send();
       });
-      // 健康检查：顺带验证 ai-server 是否在线
-      fetch(mxyz_API + '/health')
+      // 拉取可用平台列表：填充下拉框并设置默认项；切换平台时刷新模型名
+      fetch(mxyz_API + '/providers')
         .then(r => r.json())
         .then(d => {
-          const name = (d.model || '未知模型').split('/').pop();
-          el('mxyz_modelTag').textContent = '模型：' + name + (d.hasKey ? '' : '（Key 未配置）');
+          const sel = el('mxyz_providerSel');
+          sel.innerHTML = '';
+          d.providers.forEach(p => {
+            const opt = document.createElement('option');
+            opt.value = p.id;
+            opt.textContent = p.label;
+            sel.appendChild(opt);
+          });
+          sel.value = d.default;
+          // 默认平台的模型名先显示出来
+          const cur = d.providers.find(p => p.id === d.default);
+          if (cur) mxyz_updateModelTag(cur.model);
+          sel.addEventListener('change', () => {
+            const p = d.providers.find(x => x.id === sel.value);
+            mxyz_updateModelTag(p ? p.model : '');
+          });
         })
         .catch(() => {
           el('mxyz_modelTag').textContent = '⚠️ ai-server 未启动（db 目录运行 node ai-server.js）';
