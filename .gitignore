@@ -9,3 +9,6 @@ node_modules/
 
 # API 密钥配置，含硅基流动 Key，禁止入库
 .env
+
+# RAG 运行时生成的知识库数据（可由上传重建）
+db/kb_data/

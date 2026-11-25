@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<!--
+  作者：马昕玉子
+  建立时间：2026-11-25
+  使用大模型：GLM-5.3-Flash
+  功能名称：RAG 知识库问答页（文件上传解析 + 知识库管理 + 基于知识库的客服问答）
+-->
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RAG 知识库问答 · 马昕玉子的作品集</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      min-height: 100vh;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      font-family: "Microsoft YaHei", sans-serif;
+      display: flex;
+      flex-direction: column;
+    }
+    .mxyz_header { padding: 16px; text-align: center; color: #e94560; }
+    .mxyz_header h1 { font-size: 22px; }
+    .mxyz_header p { font-size: 12px; color: #8fa3c8; margin-top: 6px; }
+
+    /* 主体两栏：左侧知识库管理，右侧问答（窄屏自动上下堆叠） */
+    .mxyz_main {
+      flex: 1;
+      display: flex;
+      gap: 14px;
+      padding: 0 16px 16px;
+      max-width: 1000px;
+      width: 100%;
+      margin: 0 auto;
+    }
+    .mxyz_panel {
+      background: #223a5e;
+      border-radius: 14px;
+      padding: 14px;
+      color: #dce6f5;
+      display: flex;
+      flex-direction: column;
+    }
+    .mxyz_panel-kb { width: 340px; flex-shrink: 0; }
+    .mxyz_panel-chat { flex: 1; min-width: 0; }
+    .mxyz_panel h2 { font-size: 15px; margin-bottom: 10px; color: #e9a0b0; }
+    @media (max-width: 760px) {
+      .mxyz_main { flex-direction: column; }
+      .mxyz_panel-kb { width: 100%; }
+    }
+
+    /* 上传模块 */
+    .mxyz_upload-area {
+      border: 2px dashed #4a6fa5;
+      border-radius: 12px;
+      padding: 18px 10px;
+      text-align: center;
+      font-size: 13px;
+      color: #8fa3c8;
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+    .mxyz_upload-area:hover { border-color: #e94560; }
+    .mxyz_upload-area input { display: none; }
+    .mxyz_upload-status { font-size: 12px; margin-top: 8px; min-height: 16px; color: #8fd0ff; }
+    .mxyz_upload-status.mxyz_err { color: #ffb3c1; }
+
+    /* 知识库列表 */
+    .mxyz_kb-list { margin-top: 12px; overflow-y: auto; flex: 1; }
+    .mxyz_kb-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #0f1f3d;
+      border-radius: 10px;
+      padding: 8px 10px;
+      margin-bottom: 8px;
+      font-size: 12px;
+    }
+    .mxyz_kb-item .mxyz_kb-name { flex: 1; word-break: break-all; }
+    .mxyz_kb-item .mxyz_kb-meta { color: #6f89b5; font-size: 11px; }
+    .mxyz_kb-del {
+      border: none;
+      background: #5e2233;
+      color: #ffb3c1;
+      border-radius: 8px;
+      padding: 4px 10px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+
+    /* 聊天区 */
+    .mxyz_chat-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 4px;
+    }
+    .mxyz_msg {
+      max-width: 85%;
+      padding: 10px 14px;
+      border-radius: 14px;
+      margin-bottom: 12px;
+      font-size: 13px;
+      line-height: 1.7;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .mxyz_msg-user { margin-left: auto; background: #e94560; color: #fff; border-bottom-right-radius: 4px; }
+    .mxyz_msg-ai { margin-right: auto; background: #0f1f3d; border-bottom-left-radius: 4px; }
+    .mxyz_msg-ai.mxyz_loading { color: #8fa3c8; font-style: italic; }
+    .mxyz_msg-ai.mxyz_error { background: #5e2233; color: #ffb3c1; }
+    .mxyz_sources { margin-top: 8px; font-size: 11px; color: #6f89b5; }
+    .mxyz_welcome { color: #8fa3c8; font-size: 13px; padding: 24px 8px; text-align: center; }
+
+    /* 输入条 */
+    .mxyz_input-bar { display: flex; gap: 8px; margin-top: 10px; }
+    .mxyz_input-bar input {
+      flex: 1; padding: 11px 14px; border: 1px solid #4a6fa5; border-radius: 20px;
+      background: #0f1f3d; color: #dce6f5; font-size: 13px; outline: none;
+    }
+    .mxyz_input-bar input:focus { border-color: #e94560; }
+    .mxyz_send-btn {
+      padding: 11px 20px; border: none; border-radius: 20px;
+      background: #e94560; color: #fff; font-size: 13px; cursor: pointer;
+    }
+    .mxyz_send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .mxyz_back { display: block; text-align: center; color: #8fa3c8; font-size: 13px; padding: 12px; text-decoration: none; }
+    .mxyz_back:hover { color: #e94560; }
+  </style>
+</head>
+<body>
+  <header class="mxyz_header">
+    <h1>📚 RAG 知识库问答</h1>
+    <p>上传本地文件（doc/docx/ppt/pptx/pdf/txt）→ 自动解析入库 → 基于"检索到的资料"回答问题（rag-server，端口 3006）</p>
+  </header>
+
+  <div class="mxyz_main">
+    <!-- 左栏：知识库管理（上传 + 列表） -->
+    <div class="mxyz_panel mxyz_panel-kb">
+      <h2>知识库管理</h2>
+      <label class="mxyz_upload-area" id="mxyz_uploadArea">
+        点击选择文件上传<br>支持 doc / docx / ppt / pptx / pdf / txt
+        <input type="file" id="mxyz_fileInput" accept=".doc,.docx,.ppt,.pptx,.pdf,.txt,.md">
+      </label>
+      <div class="mxyz_upload-status" id="mxyz_uploadStatus"></div>
+      <div class="mxyz_kb-list" id="mxyz_kbList"></div>
+    </div>
+
+    <!-- 右栏：基于知识库的问答 -->
+    <div class="mxyz_panel mxyz_panel-chat">
+      <h2>智能客服问答（依据知识库作答）</h2>
+      <div class="mxyz_chat-area" id="mxyz_chatArea">
+        <div class="mxyz_welcome">先在左侧上传知识库文件，然后问我菜单、价格、会员活动等问题～<br>服务端控制台会打印发送给大模型 / 收到自大模型的完整数据。</div>
+      </div>
+      <div class="mxyz_input-bar">
+        <input type="text" id="mxyz_input" placeholder="例如：秘制烤鸭多少钱？会员积分怎么算？" autocomplete="off">
+        <button class="mxyz_send-btn" id="mxyz_sendBtn">发送</button>
+      </div>
+    </div>
+  </div>
+
+  <a class="mxyz_back" href="index.html">← 返回首页</a>
+
+  <script>
+    const mxyz_API = 'http://localhost:3006';
+
+    // el：按 id 取元素
+    function el(id) { return document.getElementById(id); }
+
+    // ===== 知识库管理 =====
+
+    // mxyz_loadKBList：拉取知识库列表并渲染（文件名 + 块数 + 删除按钮）
+    async function mxyz_loadKBList() {
+      const list = el('mxyz_kbList');
+      list.innerHTML = '';
+      try {
+        const r = await fetch(mxyz_API + '/api/kb/list');
+        const d = await r.json();
+        if (!d.docs.length) {
+          list.innerHTML = '<div style="font-size:12px;color:#6f89b5;text-align:center;padding:10px">知识库还是空的，先上传一个文件吧</div>';
+          return;
+        }
+        d.docs.forEach(doc => {
+          const item = document.createElement('div');
+          item.className = 'mxyz_kb-item';
+          item.innerHTML =
+            `<div class="mxyz_kb-name">${doc.name}<br><span class="mxyz_kb-meta">${doc.chunks} 块 / ${doc.chars} 字 / ${doc.uploadedAt}</span></div>`;
+          const del = document.createElement('button');
+          del.className = 'mxyz_kb-del';
+          del.textContent = '删除';
+          del.addEventListener('click', () => mxyz_deleteKB(doc.id, doc.name));
+          item.appendChild(del);
+          list.appendChild(item);
+        });
+      } catch (e) {
+        list.innerHTML = '<div style="font-size:12px;color:#ffb3c1">无法连接 rag-server（db 目录运行 node rag-server.js）</div>';
+      }
+    }
+
+    // mxyz_deleteKB：删除知识库文档后刷新列表
+    async function mxyz_deleteKB(id, name) {
+      if (!confirm('确定删除知识库文档「' + name + '」？')) return;
+      await fetch(mxyz_API + '/api/kb/' + id, { method: 'DELETE' });
+      mxyz_loadKBList();
+    }
+
+    // mxyz_uploadFile：上传所选文件并解析入库
+    async function mxyz_uploadFile(file) {
+      const status = el('mxyz_uploadStatus');
+      status.textContent = '解析上传中…';
+      status.classList.remove('mxyz_err');
+      try {
+        const fd = new FormData();
+        fd.append('file', file);
+        const r = await fetch(mxyz_API + '/api/kb/upload', { method: 'POST', body: fd });
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.error || '上传失败');
+        status.textContent = `✅ ${d.name} 入库成功（${d.chunks} 块，解析器 ${d.parser}）`;
+        mxyz_loadKBList();
+      } catch (e) {
+        status.textContent = '❌ ' + e.message;
+        status.classList.add('mxyz_err');
+      }
+    }
+
+    // ===== 知识库问答 =====
+
+    // mxyz_addMsg：追加聊天气泡，返回 DOM 便于后续更新
+    function mxyz_addMsg(text, who) {
+      const div = document.createElement('div');
+      div.className = 'mxyz_msg mxyz_msg-' + who;
+      div.textContent = text;
+      el('mxyz_chatArea').appendChild(div);
+      el('mxyz_chatArea').scrollTop = el('mxyz_chatArea').scrollHeight;
+      return div;
+    }
+
+    // mxyz_send：RAG 问答——发送问题 → 展示回答与知识来源
+    async function mxyz_send() {
+      const input = el('mxyz_input');
+      const text = input.value.trim();
+      if (!text) return;
+      input.value = '';
+      mxyz_addMsg(text, 'user');
+
+      const loading = mxyz_addMsg('检索知识库并思考中…', 'ai loading');
+      el('mxyz_sendBtn').disabled = true;
+      input.disabled = true;
+      try {
+        const r = await fetch(mxyz_API + '/api/rag/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: text })
+        });
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.error || '请求失败');
+        loading.textContent = d.answer;
+        loading.classList.remove('loading');
+        // 展示命中的知识来源（文档名/块号/得分），体现"基于知识库"
+        if (d.sources && d.sources.length) {
+          const src = document.createElement('div');
+          src.className = 'mxyz_sources';
+          src.textContent = '📚 依据：' + d.sources.map(s => `${s.doc}·第${s.chunkIndex + 1}块(分:${s.score})`).join('、');
+          loading.appendChild(src);
+        }
+      } catch (e) {
+        loading.textContent = '出错了：' + e.message + '（请确认 db 目录已运行 node rag-server.js）';
+        loading.classList.add('error');
+        loading.classList.remove('loading');
+      } finally {
+        el('mxyz_sendBtn').disabled = false;
+        input.disabled = false;
+        input.focus();
+      }
+    }
+
+    // boot：绑定上传/发送事件，加载知识库列表
+    (function mxyz_boot() {
+      // 点上传区即触发文件选择；选中后立刻上传
+      el('mxyz_uploadArea').addEventListener('click', () => el('mxyz_fileInput').click());
+      el('mxyz_fileInput').addEventListener('change', e => {
+        if (e.target.files[0]) mxyz_uploadFile(e.target.files[0]);
+        e.target.value = ''; // 允许重复上传同一文件
+      });
+      el('mxyz_sendBtn').addEventListener('click', mxyz_send);
+      el('mxyz_input').addEventListener('keydown', ev => {
+        if (ev.key === 'Enter') mxyz_send();
+      });
+      mxyz_loadKBList();
+    })();
+  </script>
+</body>
+</html>
