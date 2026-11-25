@@ -290,3 +290,9 @@
 ## 2026-11-25 14:52:48
 - 模型：GLM-5.3-Flash
 - 提示词：完成图像识别功能，上传图片返回该图片的描述，使用已有的api-key和模型——ai-server 新增 /api/vision(Qwen3-VL-8B) + mxyz_vision.html
+
+---
+
+## 2026-11-25 14:58:44
+- 模型：GLM-5.3-Flash
+- 提示词：实现语音识别功能，使用七牛的Qwen-Audio-3.0-ASR-Flash模型，输入语音输出文字——ai-server 新增 /api/asr(七牛主通道+硅基流动降级) + mxyz_asr.html 录音/上传

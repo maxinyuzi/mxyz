@@ -212,6 +212,68 @@ app.post('/api/vision', mul_img.single('image'), async (req, res) => {
   }
 });
 
+// POST /api/asr：语音识别——接收 multipart 字段 audio，转成文字
+// 主通道：七牛 Qwen-Audio-3.0-ASR-Flash；七牛认证失败时自动降级到硅基流动 SenseVoiceSmall
+app.post('/api/asr', mul_img.single('audio'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: '未收到音频文件' });
+  const sf = PROVIDERS.siliconflow;
+  const qn = PROVIDERS.qiniu;
+
+  // doASR：向指定平台 /audio/transcriptions 发请求，返回 {ok, data, baseUrl, model}
+  const doASR = async (baseUrl, apiKey, model) => {
+    // OpenAI 兼容的 /audio/transcriptions 接口：multipart 传 model + file
+    const form = new FormData();
+    form.append('model', model);
+    // 音频不落盘：multer 内存 buffer 直接包成 Blob 发出去
+    form.append('file', new Blob([req.file.buffer], { type: req.file.mimetype }), req.file.originalname || 'audio.webm');
+    const resp = await fetch(baseUrl + '/audio/transcriptions', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + apiKey },
+      body: form
+    });
+    const data = await resp.json();
+    return { ok: resp.ok, data, model };
+  };
+
+  const logSend = (tag, model, baseUrl) => {
+    console.log('\n========== [ASR] 发送给大模型的数据 ==========');
+    console.log('通道:', tag, '| 模型:', model, '| 音频:', req.file.originalname, `(${req.file.buffer.length} 字节, ${req.file.mimetype})`);
+    console.log(JSON.stringify({ endpoint: baseUrl + '/audio/transcriptions', model, file: `${req.file.originalname} (${req.file.buffer.length} 字节)` }, null, 2));
+  };
+
+  try {
+    // ---- 主通道：七牛 ASR ----
+    const qnModel = ENV.QINIU_ASR_MODEL || 'Qwen-Audio-3.0-ASR-Flash';
+    if (!qn.apiKey || !qn.baseUrl) {
+      return res.status(500).json({ error: '服务器未配置七牛 API，请检查 .env 文件' });
+    }
+    logSend('七牛(主)', qnModel, qn.baseUrl);
+    let r = await doASR(qn.baseUrl, qn.apiKey, qnModel);
+
+    // 认证失败（Key 无效）且硅基流动可用 → 自动降级，保证功能可用
+    const authFail = !r.ok && (r.data?.error?.code === 'auth_api_key_invalid' || /invalid api key/i.test(r.data?.error?.message || r.data?.message || ''));
+    if (authFail && sf.apiKey && sf.baseUrl) {
+      console.log('[ASR] 七牛 Key 认证失败，自动降级到硅基流动 SenseVoiceSmall');
+      const sfModel = ENV.SILICONFLOW_ASR_MODEL || 'FunAudioLLM/SenseVoiceSmall';
+      logSend('硅基流动(降级)', sfModel, sf.baseUrl);
+      r = await doASR(sf.baseUrl, sf.apiKey, sfModel);
+    }
+
+    if (!r.ok) {
+      return res.status(502).json({ error: 'ASR 平台请求失败：' + (r.data?.error?.message || r.data?.message || '上游接口错误') });
+    }
+
+    // 控制台输出来自大模型的数据
+    console.log('\n========== [ASR] 收到大模型的数据 ==========');
+    console.log(JSON.stringify(r.data, null, 2));
+
+    res.json({ text: r.data.text || '', model: r.model });
+  } catch (err) {
+    console.error('[asr] 识别失败:', err.message);
+    res.status(502).json({ error: '语音识别失败：' + err.message });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`[ai-server] AI 对话服务器已启动: http://localhost:${PORT}`);
   console.log(`[ai-server] 可用平台: ${Object.keys(PROVIDERS).join(', ')} | 默认: ${DEFAULT_PROVIDER}`);
